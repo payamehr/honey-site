@@ -55,21 +55,24 @@ const CONFIG = {
   markets: ["UAE", "Saudi Arabia", "Qatar", "Kuwait", "Bahrain", "Oman"],
 };
 
+// Helper to resolve public/ assets correctly on GitHub Pages with base `/honey-site/`
+const asset = (path) => `${import.meta.env.BASE_URL}${path.replace(/^\/+/, "")}`;
+
 const SLIDES = [
   {
-    local: "/images/slides/slide-1-hero.jpg",
+    local: "images/slides/slide-1-hero.jpg",
     remote: "https://images.unsplash.com/photo-1505577058444-a3dab90d4253?q=80&w=1600&auto=format&fit=crop",
     headline: "Bee to Bottle — Pure & Organic",
     sub: "Golden hues, floral notes, enzyme-rich goodness.",
   },
   {
-    local: "/images/slides/slide-2-apiary.jpg",
+    local: "images/slides/slide-2-apiary.jpg",
     remote: "https://images.unsplash.com/photo-1519160558534-5790a5e4a3b1?q=80&w=1600&auto=format&fit=crop",
     headline: "Craft & Care at the Apiary",
     sub: "Sustainably managed hives and gentle extraction.",
   },
   {
-    local: "/images/slides/slide-3-oman-packaging.jpg",
+    local: "images/slides/slide-3-oman-packaging.jpg",
     remote: "https://images.unsplash.com/photo-1542831371-29b0f74f9713?q=80&w=1600&auto=format&fit=crop",
     headline: "Certified & Packaged in Oman",
     sub: "Tested, standardized and prepared for GCC export.",
@@ -77,12 +80,12 @@ const SLIDES = [
 ];
 
 const GALLERY = [
-  { local: "/images/gallery/apiary-closeup.jpg", remote: "https://images.unsplash.com/photo-1519160558534-5790a5e4a3b1?q=80&w=1400&auto=format&fit=crop" },
-  { local: "/images/gallery/oman-lab-testing.jpg", remote: "https://images.unsplash.com/photo-1542831371-29b0f74f9713?q=80&w=1400&auto=format&fit=crop" },
-  { local: "/images/gallery/honeycomb-macro.jpg", remote: "https://images.unsplash.com/photo-1505577058444-a3dab90d4253?q=80&w=1400&auto=format&fit=crop" },
-  { local: "/images/gallery/jars-shelf.jpg", remote: "https://images.unsplash.com/photo-1472586662442-3eec04b9dbda?q=80&w=1400&auto=format&fit=crop" },
-  { local: "/images/gallery/packaging-line.jpg", remote: "https://images.unsplash.com/photo-1464207687429-7505649dae38?q=80&w=1400&auto=format&fit=crop" },
-  { local: "/images/gallery/apiary-landscape.jpg", remote: "https://images.unsplash.com/photo-1519092528346-59a5bb6ec191?q=80&w=1400&auto=format&fit=crop" },
+  { local: "images/gallery/apiary-closeup.jpg", remote: "https://images.unsplash.com/photo-1519160558534-5790a5e4a3b1?q=80&w=1400&auto=format&fit=crop" },
+  { local: "images/gallery/oman-lab-testing.jpg", remote: "https://images.unsplash.com/photo-1542831371-29b0f74f9713?q=80&w=1400&auto=format&fit=crop" },
+  { local: "images/gallery/honeycomb-macro.jpg", remote: "https://images.unsplash.com/photo-1505577058444-a3dab90d4253?q=80&w=1400&auto=format&fit=crop" },
+  { local: "images/gallery/jars-shelf.jpg", remote: "https://images.unsplash.com/photo-1472586662442-3eec04b9dbda?q=80&w=1400&auto=format&fit=crop" },
+  { local: "images/gallery/packaging-line.jpg", remote: "https://images.unsplash.com/photo-1464207687429-7505649dae38?q=80&w=1400&auto=format&fit=crop" },
+  { local: "images/gallery/apiary-landscape.jpg", remote: "https://images.unsplash.com/photo-1519092528346-59a5bb6ec191?q=80&w=1400&auto=format&fit=crop" },
 ];
 
 // Small springy reveal helper
@@ -160,10 +163,10 @@ export default function OrganicHoneyLandingPage() {
   const [useFallback, setUseFallback] = useState(false);
   useEffect(() => {
     const locals = [
-      ...SLIDES.map((s) => s.local),
-      "/images/products/organic-honey-jar.jpg",
-      "/images/products/royal-jelly-spoon.jpg",
-      ...GALLERY.map((g) => g.local),
+      ...SLIDES.map((s) => asset(s.local)),
+      asset("images/products/organic-honey-jar.jpg"),
+      asset("images/products/royal-jelly-spoon.jpg"),
+      ...GALLERY.map((g) => asset(g.local)),
     ];
     let switched = false;
     locals.forEach((u) => {
@@ -223,7 +226,7 @@ export default function OrganicHoneyLandingPage() {
               key={i}
               className="absolute inset-0 bg-center bg-cover"
               style={{
-                backgroundImage: `url(${useFallback ? s.remote : s.local})`,
+                backgroundImage: `url(${useFallback ? s.remote : asset(s.local)})`,
               }}
               initial={{ opacity: 0 }}
               animate={{ opacity: i === active ? 1 : 0 }}
@@ -409,7 +412,7 @@ export default function OrganicHoneyLandingPage() {
               <div
                 className="h-64 bg-cover bg-center"
                 style={{
-                  backgroundImage: `url(${useFallback ? "https://images.unsplash.com/photo-1505577058444-a3dab90d4253?q=80&w=1600&auto=format&fit=crop" : "/images/products/organic-honey-jar.jpg"})`,
+                  backgroundImage: `url(${useFallback ? "https://images.unsplash.com/photo-1505577058444-a3dab90d4253?q=80&w=1600&auto=format&fit=crop" : asset("images/products/organic-honey-jar.jpg")})`,
                 }}
                 role="img"
                 aria-label="Jar of organic honey"
@@ -445,7 +448,7 @@ export default function OrganicHoneyLandingPage() {
               <div
                 className="h-64 bg-cover bg-center"
                 style={{
-                  backgroundImage: `url(${useFallback ? "https://images.unsplash.com/photo-1580931880627-268c0c7561c6?q=80&w=1600&auto=format&fit=crop" : "/images/products/royal-jelly-spoon.jpg"})`,
+                  backgroundImage: `url(${useFallback ? "https://images.unsplash.com/photo-1580931880627-268c0c7561c6?q=80&w=1600&auto=format&fit=crop" : asset("images/products/royal-jelly-spoon.jpg")})`,
                 }}
                 role="img"
                 aria-label="Fresh royal jelly in a spoon"
@@ -606,7 +609,7 @@ export default function OrganicHoneyLandingPage() {
               {GALLERY.map((img, i) => (
                 <motion.img
                   key={i}
-                  src={useFallback ? img.remote : img.local}
+                  src={useFallback ? img.remote : asset(img.local)}
                   alt="Honey and packaging gallery"
                   className="h-56 w-96 object-cover rounded-2xl border border-amber-100 shadow-sm"
                   whileHover={{ scale: 1.02 }}
