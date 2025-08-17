@@ -132,6 +132,7 @@ export default function OrganicHoneyLandingPage() {
   const [active, setActive] = useState(0);
   const [autoplay, setAutoplay] = useState(true);
   const intervalRef = useRef(null);
+  const [mobileOpen, setMobileOpen] = useState(false);
 
   // --- Lightweight runtime sanity checks ("tests") ---
   useEffect(() => {
@@ -195,37 +196,84 @@ export default function OrganicHoneyLandingPage() {
   return (
     <div className="min-h-screen w-full bg-amber-50/30 text-stone-900">
       {/* Sticky Nav */}
-      <header className="fixed top-0 inset-x-0 z-50 backdrop-blur bg-amber-50/70 border-b border-amber-100">
-        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
-          <a href="#home" className="flex items-center gap-2 font-semibold">
-            <Leaf className="h-6 w-6" />
-            <span>{CONFIG.company}</span>
-          </a>
-          <nav className="hidden md:flex items-center gap-6 text-sm">
-            {[
-              ["Story", "story"],
-              ["Products", "products"],
-              ["Quality", "quality"],
-              ["Markets", "markets"],
-              ["Gallery", "gallery"],
-              ["Contact", "contact"],
-            ].map(([label, id]) => (
-              <a key={id} href={`#${id}`} className="hover:text-amber-700">
-                {label}
-              </a>
-            ))}
-          </nav>
-          <div className="hidden md:flex items-center gap-3">
-            <a
-              href="#contact"
-              className="inline-flex items-center gap-2 rounded-2xl bg-amber-600 px-4 py-2 text-white hover:bg-amber-700 transition"
-            >
-              <MessageCircle className="h-4 w-4" />
-              Talk to Sales
-            </a>
-          </div>
-        </div>
-      </header>
+     <header className="fixed top-0 inset-x-0 z-50 backdrop-blur bg-amber-50/70 border-b border-amber-100">
+       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+         <a href="#home" className="flex items-center gap-2 font-semibold">
+           <Leaf className="h-6 w-6" />
+           <span>{CONFIG.company}</span>
+         </a>
+     
+         {/* Desktop nav */}
+         <nav className="hidden md:flex items-center gap-6 text-sm">
+           {[
+             ["Story", "story"],
+             ["Products", "products"],
+             ["Quality", "quality"],
+             ["Markets", "markets"],
+             ["Gallery", "gallery"],
+             ["Contact", "contact"],
+           ].map(([label, id]) => (
+             <a key={id} href={`#${id}`} className="hover:text-amber-700">
+               {label}
+             </a>
+           ))}
+         </nav>
+         <div className="hidden md:flex items-center gap-3">
+           <a
+             href="#contact"
+             className="inline-flex items-center gap-2 rounded-2xl bg-amber-600 px-4 py-2 text-white hover:bg-amber-700 transition"
+           >
+             <MessageCircle className="h-4 w-4" />
+             Talk to Sales
+           </a>
+         </div>
+     
+         {/* Mobile toggle */}
+         <button
+           className="md:hidden inline-flex items-center justify-center rounded-xl p-2 border border-amber-200 hover:bg-amber-100/60"
+           aria-label="Toggle menu"
+           aria-expanded={mobileOpen}
+           onClick={() => setMobileOpen((v) => !v)}
+         >
+           {mobileOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
+         </button>
+       </div>
+     
+       {/* Mobile panel */}
+       <motion.div
+         initial={false}
+         animate={mobileOpen ? { height: "auto", opacity: 1 } : { height: 0, opacity: 0 }}
+         className="md:hidden overflow-hidden border-t border-amber-100 bg-amber-50/95 backdrop-blur"
+       >
+         <div className="px-4 py-4 flex flex-col gap-2">
+           {[
+             ["Story", "story"],
+             ["Products", "products"],
+             ["Quality", "quality"],
+             ["Markets", "markets"],
+             ["Gallery", "gallery"],
+             ["Contact", "contact"],
+           ].map(([label, id]) => (
+             <a
+               key={id}
+               href={`#${id}`}
+               className="py-2 rounded-xl px-3 hover:bg-amber-100/70"
+               onClick={() => setMobileOpen(false)} // بستن منو بعد از کلیک
+             >
+               {label}
+             </a>
+           ))}
+           <a
+             href="#contact"
+             className="mt-2 inline-flex items-center gap-2 rounded-2xl bg-amber-600 px-4 py-2 text-white hover:bg-amber-700"
+             onClick={() => setMobileOpen(false)}
+           >
+             <MessageCircle className="h-4 w-4" />
+             Talk to Sales
+           </a>
+         </div>
+       </motion.div>
+     </header>
 
       {/* Bee stripes accent */}
       <div className="h-1.5 bg-[repeating-linear-gradient(45deg,#000000_0_12px,#f59e0b_12px_24px)]" />
