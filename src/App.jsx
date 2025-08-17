@@ -1,27 +1,9 @@
-import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect, useRef, useState, useMemo } from "react";
 import { motion } from "framer-motion";
 import {
-     Leaf, Droplets, Package, ShieldCheck, Truck, Factory, MapPin, Phone, Mail,
-     CheckCircle2, ChevronRight, Instagram, Facebook, Linkedin, MessageCircle, PlayCircle,
-  +  Menu, X
-} from "lucide-react";
-import {
-  Leaf,
-  Droplets,
-  Package,
-  ShieldCheck,
-  Truck,
-  Factory,
-  MapPin,
-  Phone,
-  Mail,
-  CheckCircle2,
-  ChevronRight,
-  Instagram,
-  Facebook,
-  Linkedin,
-  MessageCircle,
-  PlayCircle,
+  Leaf, Droplets, Package, ShieldCheck, Truck, Factory, MapPin, Phone, Mail,
+  CheckCircle2, ChevronRight, Instagram, Facebook, Linkedin, MessageCircle, PlayCircle,
+  Menu, X
 } from "lucide-react";
 
 /**
@@ -36,12 +18,6 @@ import {
  * ✅ Gallery (swipeable on mobile)
  * ✅ Contact form + social links
  * ✅ Embedded map (replace coordinates/address as needed)
- * ✅ Clean SEO tags & JSON-LD (if used in Next.js/Head, comment included)
- *
- * Notes:
- * - Fix for SyntaxError at (134:47): wrong CSS selector quotes in smooth-scroll (now 'a[href^="#"]').
- * - Removed TypeScript-only syntax so the file parses in plain JS/JSX.
- * - Kept prior self-tests and added a few more safety checks.
  */
 
 // ------------------------ CONFIG ------------------------
@@ -52,7 +28,6 @@ const CONFIG = {
   phone: "+968 9000 0000",
   address: "Muscat, Oman",
   map: {
-    // Muscat (placeholder). Replace with your exact coordinates.
     lat: 23.588,
     lng: 58.3829,
     zoom: 11,
@@ -61,16 +36,12 @@ const CONFIG = {
 };
 
 // ---------- LOCAL-ONLY ASSETS (no remote) ----------
-
-// BASE-aware برای GitHub Pages (base=/honey-site/)
 const asset = (path) =>
   `${import.meta.env.BASE_URL}${String(path).replace(/^\/+/, "")}`;
 
-// یک پیکسل ترنسپرنت برای جلوگیری از لوپ خطای img (فالبک بی‌نیاز از ریموت)
 const TRANSPARENT_PNG =
   "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR4nGNgYAAAAAMAASsJTYQAAAAASUVORK5CYII=";
 
-// اسلایدها: فقط مسیرهای لوکال (نسبت به public/)
 const SLIDES = [
   {
     local: "images/slides/slide-1-hero.jpg",
@@ -89,7 +60,6 @@ const SLIDES = [
   },
 ];
 
-// گالری: فقط لوکال
 const GALLERY = [
   { local: "images/gallery/apiary-closeup.jpg" },
   { local: "images/gallery/oman-lab-testing.jpg" },
@@ -99,12 +69,11 @@ const GALLERY = [
   { local: "images/gallery/apiary-landscape.jpg" },
 ];
 
-// پس‌زمینه‌ی اسلاید فقط از لوکال؛ اگر نبود، به ترنسپرنت می‌افتد (نه ریموت)
+// پس‌زمینه‌ی اسلاید با فالبک شفاف (بدون ریموت)
 function ImageBg({ local, active }) {
-  const src = React.useMemo(() => asset(local), [local]);
-  const [imgSrc, setImgSrc] = React.useState(src);
-  React.useEffect(() => setImgSrc(src), [src]);
-
+  const src = useMemo(() => asset(local), [local]);
+  const [imgSrc, setImgSrc] = useState(src);
+  useEffect(() => setImgSrc(src), [src]);
   return (
     <img
       src={imgSrc}
@@ -118,65 +87,63 @@ function ImageBg({ local, active }) {
   );
 }
 
-// Small springy reveal helper (بدون تغییر)
+// <img> عمومی برای محصولات/گالری (لوکال-only)
+function ImgLocal({ src, alt, className }) {
+  const resolved = useMemo(() => asset(src), [src]);
+  const [s, setS] = useState(resolved);
+  useEffect(() => setS(resolved), [resolved]);
+  return (
+    <img
+      src={s}
+      onError={() => setS(TRANSPARENT_PNG)}
+      alt={alt}
+      className={className}
+      loading="lazy"
+      decoding="async"
+    />
+  );
+}
+
+// Small springy reveal helper
 const fadeUp = {
   hidden: { opacity: 0, y: 20 },
   show: { opacity: 1, y: 0, transition: { duration: 0.6 } },
 };
 
-
-
-
 // ------------------------ MAIN PAGE ------------------------
 export default function OrganicHoneyLandingPage() {
   const [active, setActive] = useState(0);
   const [autoplay, setAutoplay] = useState(true);
-  const intervalRef = useRef(null);
   const [mobileOpen, setMobileOpen] = useState(false);
+  const intervalRef = useRef(null);
 
-  // --- Lightweight runtime sanity checks ("tests") ---
+  // sanity checks (سبک)
   useEffect(() => {
-    // Existing tests (kept)
-    console.assert(Array.isArray(SLIDES) && SLIDES.length >= 3, "SLIDES should have at least 3 items");
-    console.assert(Array.isArray(GALLERY) && GALLERY.length >= 6, "GALLERY should have at least 6 items");
-    console.assert(typeof CONFIG.map.lat === "number" && CONFIG.map.lat >= -90 && CONFIG.map.lat <= 90, "Map latitude invalid");
-    console.assert(typeof CONFIG.map.lng === "number" && CONFIG.map.lng >= -180 && CONFIG.map.lng <= 180, "Map longitude invalid");
-    console.assert(typeof CONFIG.company === "string" && CONFIG.company.length > 0, "Company name required");
-
-    // Additional tests
-    const urlRegex = /^https?:\/\//i;
-    console.assert(SLIDES.every(s => typeof s.src === "string" && urlRegex.test(s.src)), "Each SLIDE must have a valid src URL");
-    console.assert(SLIDES.every(s => typeof s.headline === "string" && s.headline.length > 0), "Each SLIDE must have a headline");
-    console.assert(GALLERY.every(u => typeof u === "string" && urlRegex.test(u)), "GALLERY items must be URLs");
-    setTimeout(() => {
-      const bar = document.getElementById("progressBar");
-      console.assert(!!bar, "#progressBar element should exist in DOM");
-    }, 0);
+    console.assert(Array.isArray(SLIDES) && SLIDES.length >= 3, "SLIDES length");
+    console.assert(Array.isArray(GALLERY) && GALLERY.length >= 6, "GALLERY length");
+    console.assert(typeof CONFIG.company === "string" && CONFIG.company, "Company name");
   }, []);
 
   // Hero slideshow autoplay
   useEffect(() => {
     if (!autoplay) return;
     intervalRef.current = window.setInterval(() => {
-      setActive(i => (i + 1) % SLIDES.length);
+      setActive((i) => (i + 1) % SLIDES.length);
     }, 5000);
-    return () => {
-      if (intervalRef.current) window.clearInterval(intervalRef.current);
-    };
+    return () => intervalRef.current && window.clearInterval(intervalRef.current);
   }, [autoplay]);
 
-  // Progress for the active slide (simple CSS animation trigger)
+  // Progress bar restart on active change
   useEffect(() => {
     const bar = document.querySelector("#progressBar");
     if (bar && bar.classList) {
       bar.classList.remove("animate-progress");
-      // Force reflow to restart the animation
       if (bar instanceof HTMLElement) void bar.offsetWidth;
       bar.classList.add("animate-progress");
     }
   }, [active]);
 
-  // Smooth scrolling for internal anchors
+  // Smooth scroll for internal anchors
   useEffect(() => {
     const handler = (e) => {
       const target = e.target;
@@ -185,6 +152,7 @@ export default function OrganicHoneyLandingPage() {
         const id = target.getAttribute("href").slice(1);
         const el = document.getElementById(id);
         if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
+        setMobileOpen(false);
       }
     };
     document.addEventListener("click", handler);
@@ -196,84 +164,85 @@ export default function OrganicHoneyLandingPage() {
   return (
     <div className="min-h-screen w-full bg-amber-50/30 text-stone-900">
       {/* Sticky Nav */}
-     <header className="fixed top-0 inset-x-0 z-50 backdrop-blur bg-amber-50/70 border-b border-amber-100">
-       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
-         <a href="#home" className="flex items-center gap-2 font-semibold">
-           <Leaf className="h-6 w-6" />
-           <span>{CONFIG.company}</span>
-         </a>
-     
-         {/* Desktop nav */}
-         <nav className="hidden md:flex items-center gap-6 text-sm">
-           {[
-             ["Story", "story"],
-             ["Products", "products"],
-             ["Quality", "quality"],
-             ["Markets", "markets"],
-             ["Gallery", "gallery"],
-             ["Contact", "contact"],
-           ].map(([label, id]) => (
-             <a key={id} href={`#${id}`} className="hover:text-amber-700">
-               {label}
-             </a>
-           ))}
-         </nav>
-         <div className="hidden md:flex items-center gap-3">
-           <a
-             href="#contact"
-             className="inline-flex items-center gap-2 rounded-2xl bg-amber-600 px-4 py-2 text-white hover:bg-amber-700 transition"
-           >
-             <MessageCircle className="h-4 w-4" />
-             Talk to Sales
-           </a>
-         </div>
-     
-         {/* Mobile toggle */}
-         <button
-           className="md:hidden inline-flex items-center justify-center rounded-xl p-2 border border-amber-200 hover:bg-amber-100/60"
-           aria-label="Toggle menu"
-           aria-expanded={mobileOpen}
-           onClick={() => setMobileOpen((v) => !v)}
-         >
-           {mobileOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
-         </button>
-       </div>
-     
-       {/* Mobile panel */}
-       <motion.div
-         initial={false}
-         animate={mobileOpen ? { height: "auto", opacity: 1 } : { height: 0, opacity: 0 }}
-         className="md:hidden overflow-hidden border-t border-amber-100 bg-amber-50/95 backdrop-blur"
-       >
-         <div className="px-4 py-4 flex flex-col gap-2">
-           {[
-             ["Story", "story"],
-             ["Products", "products"],
-             ["Quality", "quality"],
-             ["Markets", "markets"],
-             ["Gallery", "gallery"],
-             ["Contact", "contact"],
-           ].map(([label, id]) => (
-             <a
-               key={id}
-               href={`#${id}`}
-               className="py-2 rounded-xl px-3 hover:bg-amber-100/70"
-               onClick={() => setMobileOpen(false)} // بستن منو بعد از کلیک
-             >
-               {label}
-             </a>
-           ))}
-           <a
-             href="#contact"
-             className="mt-2 inline-flex items-center gap-2 rounded-2xl bg-amber-600 px-4 py-2 text-white hover:bg-amber-700"
-             onClick={() => setMobileOpen(false)}
-           >
-             <MessageCircle className="h-4 w-4" />
-             Talk to Sales
-           </a>
-         </div>
-       </motion.div>
-     </header>
+      <header className="fixed top-0 inset-x-0 z-50 backdrop-blur bg-amber-50/70 border-b border-amber-100">
+        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+          <a href="#home" className="flex items-center gap-2 font-semibold">
+            <Leaf className="h-6 w-6" />
+            <span>{CONFIG.company}</span>
+          </a>
+
+          {/* Desktop nav */}
+          <nav className="hidden md:flex items-center gap-6 text-sm">
+            {[
+              ["Story", "story"],
+              ["Products", "products"],
+              ["Quality", "quality"],
+              ["Markets", "markets"],
+              ["Gallery", "gallery"],
+              ["Contact", "contact"],
+            ].map(([label, id]) => (
+              <a key={id} href={`#${id}`} className="hover:text-amber-700">
+                {label}
+              </a>
+            ))}
+          </nav>
+
+          <div className="hidden md:flex items-center gap-3">
+            <a
+              href="#contact"
+              className="inline-flex items-center gap-2 rounded-2xl bg-amber-600 px-4 py-2 text-white hover:bg-amber-700 transition"
+            >
+              <MessageCircle className="h-4 w-4" />
+              Talk to Sales
+            </a>
+          </div>
+
+          {/* Mobile toggle */}
+          <button
+            className="md:hidden inline-flex items-center justify-center rounded-xl p-2 border border-amber-200 hover:bg-amber-100/60"
+            aria-label="Toggle menu"
+            aria-expanded={mobileOpen}
+            onClick={() => setMobileOpen((v) => !v)}
+          >
+            {mobileOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
+          </button>
+        </div>
+
+        {/* Mobile panel - CSS transition */}
+        <div
+          className={`md:hidden overflow-hidden border-t border-amber-100 bg-amber-50/95 backdrop-blur transition-[max-height,opacity] duration-300 ${
+            mobileOpen ? "opacity-100 max-h-[70vh]" : "opacity-0 max-h-0"
+          }`}
+        >
+          <div className="px-4 py-4 flex flex-col gap-2">
+            {[
+              ["Story", "story"],
+              ["Products", "products"],
+              ["Quality", "quality"],
+              ["Markets", "markets"],
+              ["Gallery", "gallery"],
+              ["Contact", "contact"],
+            ].map(([label, id]) => (
+              <a
+                key={id}
+                href={`#${id}`}
+                className="py-2 rounded-xl px-3 hover:bg-amber-100/70"
+                onClick={() => setMobileOpen(false)}
+              >
+                {label}
+              </a>
+            ))}
+            <a
+              href="#contact"
+              className="mt-2 inline-flex items-center gap-2 rounded-2xl bg-amber-600 px-4 py-2 text-white hover:bg-amber-700"
+              onClick={() => setMobileOpen(false)}
+            >
+              <MessageCircle className="h-4 w-4" />
+              Talk to Sales
+            </a>
+          </div>
+        </div>
+      </header>
 
       {/* Bee stripes accent */}
       <div className="h-1.5 bg-[repeating-linear-gradient(45deg,#000000_0_12px,#f59e0b_12px_24px)]" />
@@ -286,31 +255,32 @@ export default function OrganicHoneyLandingPage() {
             <ImageBg key={i} local={s.local} active={i === active} />
           ))}
           <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-amber-900/20 to-amber-800/10" />
-
         </div>
 
         <div className="relative z-10 h-full flex flex-col items-center justify-center text-center px-4">
           <motion.h1
             className="text-4xl sm:text-5xl md:text-6xl font-extrabold text-white drop-shadow"
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6 }}
+            variants={fadeUp}
+            initial="hidden"
+            animate="show"
           >
             {slide.headline}
           </motion.h1>
           <motion.p
             className="mt-4 max-w-2xl text-white/90 text-base sm:text-lg"
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.7, delay: 0.1 }}
+            variants={fadeUp}
+            initial="hidden"
+            animate="show"
+            transition={{ delay: 0.1 }}
           >
             {slide.sub}
           </motion.p>
           <motion.div
             className="mt-8 flex flex-col sm:flex-row gap-3"
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.7, delay: 0.2 }}
+            variants={fadeUp}
+            initial="hidden"
+            animate="show"
+            transition={{ delay: 0.2 }}
           >
             <a
               href="#products"
@@ -329,7 +299,7 @@ export default function OrganicHoneyLandingPage() {
           {/* controls */}
           <div className="absolute bottom-5 inset-x-0 flex items-center justify-center gap-3">
             <button
-              onClick={() => setAutoplay(v => !v)}
+              onClick={() => setAutoplay((v) => !v)}
               className="text-white/90 text-xs border border-white/30 rounded-full px-3 py-1 hover:bg-white/10"
             >
               {autoplay ? "Pause" : "Play"}
@@ -397,11 +367,11 @@ export default function OrganicHoneyLandingPage() {
               {
                 icon: <Factory className="h-6 w-6" />,
                 title: "Packaging in Oman",
-                desc: "State‑of‑the‑art facility for retail and HoReCa formats with full traceability.",
+                desc: "State-of-the-art facility for retail and HoReCa formats with full traceability.",
               },
               {
                 icon: <Package className="h-6 w-6" />,
-                title: "Retail‑Ready Presentation",
+                title: "Retail-Ready Presentation",
                 desc: "Premium jars, squeezers and gift boxes designed for international markets.",
               },
               {
@@ -441,7 +411,6 @@ export default function OrganicHoneyLandingPage() {
           >
             Our Products
           </motion.h2>
-      
           <motion.p
             className="mt-3 text-stone-600 max-w-3xl"
             variants={fadeUp}
@@ -453,7 +422,7 @@ export default function OrganicHoneyLandingPage() {
             Both are tested in Oman, standardized to meet national requirements, and packaged
             for GCC retail and hospitality channels.
           </motion.p>
-      
+
           <div className="mt-12 grid gap-6 md:grid-cols-2">
             {/* Organic Honey */}
             <motion.article
@@ -464,17 +433,13 @@ export default function OrganicHoneyLandingPage() {
               viewport={{ once: true, margin: "-80px" }}
             >
               <figure className="relative aspect-[16/9] overflow-hidden">
-                <img
-                  src={asset("images/products/organic-honey-jar.jpg")}
-                  onError={(e) => (e.currentTarget.src = TRANSPARENT_PNG)}
+                <ImgLocal
+                  src="images/products/organic-honey-jar.jpg"
                   alt="Organic honey jar"
                   className="h-full w-full object-cover"
-                  loading="lazy"
-                  decoding="async"
                 />
                 <div className="absolute inset-0 bg-gradient-to-t from-black/35 via-black/10 to-transparent" />
               </figure>
-      
               <div className="p-6">
                 <h3 className="text-xl font-semibold">Organic Honey</h3>
                 <p className="mt-2 text-sm text-stone-600">
@@ -495,7 +460,7 @@ export default function OrganicHoneyLandingPage() {
                 </ul>
               </div>
             </motion.article>
-      
+
             {/* Royal Jelly */}
             <motion.article
               className="rounded-3xl overflow-hidden border border-amber-100/80 bg-white shadow-sm"
@@ -505,17 +470,13 @@ export default function OrganicHoneyLandingPage() {
               viewport={{ once: true, margin: "-80px" }}
             >
               <figure className="relative aspect-[16/9] overflow-hidden">
-                <img
-                  src={asset("images/products/royal-jelly-spoon.jpg")}
-                  onError={(e) => (e.currentTarget.src = TRANSPARENT_PNG)}
+                <ImgLocal
+                  src="images/products/royal-jelly-spoon.jpg"
                   alt="Fresh royal jelly on a spoon"
                   className="h-full w-full object-cover"
-                  loading="lazy"
-                  decoding="async"
                 />
                 <div className="absolute inset-0 bg-gradient-to-t from-black/35 via-black/10 to-transparent" />
               </figure>
-      
               <div className="p-6">
                 <h3 className="text-xl font-semibold">Royal Jelly</h3>
                 <p className="mt-2 text-sm text-stone-600">
@@ -665,24 +626,22 @@ export default function OrganicHoneyLandingPage() {
             whileInView="show"
             viewport={{ once: true, margin: "-80px" }}
           >
-            A selection of imagery from our apiaries, lab, packaging and shelf‑ready formats.
+            A selection of imagery from our apiaries, lab, packaging and shelf-ready formats.
           </motion.p>
 
           <div className="mt-8 overflow-x-auto no-scrollbar">
             <div className="flex gap-4 min-w-max">
               {GALLERY.map((img, i) => (
-                <motion.img
-                  key={i}
-                  src={asset(img.local)}
-                  onError={(e) => (e.currentTarget.src = TRANSPARENT_PNG)}
-                  alt="Honey and packaging gallery"
-                  className="h-56 w-96 object-cover rounded-2xl border border-amber-100 shadow-sm"
-                  whileHover={{ scale: 1.02 }}
-                />
+                <motion.div key={i} whileHover={{ scale: 1.02 }} className="h-56 w-96">
+                  <ImgLocal
+                    src={img.local}
+                    alt="Honey and packaging gallery"
+                    className="h-full w-full object-cover rounded-2xl border border-amber-100 shadow-sm"
+                  />
+                </motion.div>
               ))}
             </div>
           </div>
-
         </div>
       </section>
 
@@ -792,28 +751,6 @@ export default function OrganicHoneyLandingPage() {
         @keyframes progress { from { width: 0% } to { width: 100% } }
         .honey-ring { box-shadow: 0 0 0 4px rgba(245, 158, 11, 0.15); }
       `}</style>
-
-      {/* OPTIONAL SEO (uncomment if you use a <Head> in Next.js) */}
-      {false && (
-        <script
-          type="application/ld+json"
-          dangerouslySetInnerHTML={{
-            __html: JSON.stringify({
-              "@context": "https://schema.org",
-              "@type": "Organization",
-              name: CONFIG.company,
-              url: "https://example.com",
-              contactPoint: [{
-                "@type": "ContactPoint",
-                email: CONFIG.email,
-                telephone: CONFIG.phone,
-                contactType: "sales",
-                areaServed: CONFIG.markets,
-              }],
-            }),
-          }}
-        />
-      )}
     </div>
   );
 }
