@@ -471,7 +471,7 @@ export default function OrganicHoneyLandingPage() {
             >
               <figure className="relative aspect-[16/9] overflow-hidden">
                 <ImgLocal
-                  src="images/products/royal-jelly-spoon.jpg"
+                  src="images/products/royal-jelly.jpg"
                   alt="Fresh royal jelly on a spoon"
                   className="h-full w-full object-cover"
                 />
