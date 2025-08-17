@@ -57,29 +57,32 @@ const CONFIG = {
 
 const SLIDES = [
   {
-    src: "https://images.unsplash.com/photo-1505577058444-a3dab90d4253?q=80&w=1600&auto=format&fit=crop",
+    local: "/images/slides/slide-1-hero.jpg",
+    remote: "https://images.unsplash.com/photo-1505577058444-a3dab90d4253?q=80&w=1600&auto=format&fit=crop",
     headline: "Bee to Bottle — Pure & Organic",
     sub: "Golden hues, floral notes, enzyme-rich goodness.",
   },
   {
-    src: "https://images.unsplash.com/photo-1519160558534-5790a5e4a3b1?q=80&w=1600&auto=format&fit=crop",
+    local: "/images/slides/slide-2-apiary.jpg",
+    remote: "https://images.unsplash.com/photo-1519160558534-5790a5e4a3b1?q=80&w=1600&auto=format&fit=crop",
     headline: "Craft & Care at the Apiary",
     sub: "Sustainably managed hives and gentle extraction.",
   },
   {
-    src: "https://images.unsplash.com/photo-1542831371-29b0f74f9713?q=80&w=1600&auto=format&fit=crop",
+    local: "/images/slides/slide-3-oman-packaging.jpg",
+    remote: "https://images.unsplash.com/photo-1542831371-29b0f74f9713?q=80&w=1600&auto=format&fit=crop",
     headline: "Certified & Packaged in Oman",
     sub: "Tested, standardized and prepared for GCC export.",
   },
 ];
 
 const GALLERY = [
-  "https://images.unsplash.com/photo-1519160558534-5790a5e4a3b1?q=80&w=1400&auto=format&fit=crop",
-  "https://images.unsplash.com/photo-1542831371-29b0f74f9713?q=80&w=1400&auto=format&fit=crop",
-  "https://images.unsplash.com/photo-1505577058444-a3dab90d4253?q=80&w=1400&auto=format&fit=crop",
-  "https://images.unsplash.com/photo-1472586662442-3eec04b9dbda?q=80&w=1400&auto=format&fit=crop",
-  "https://images.unsplash.com/photo-1464207687429-7505649dae38?q=80&w=1400&auto=format&fit=crop",
-  "https://images.unsplash.com/photo-1519092528346-59a5bb6ec191?q=80&w=1400&auto=format&fit=crop",
+  { local: "/images/gallery/apiary-closeup.jpg", remote: "https://images.unsplash.com/photo-1519160558534-5790a5e4a3b1?q=80&w=1400&auto=format&fit=crop" },
+  { local: "/images/gallery/oman-lab-testing.jpg", remote: "https://images.unsplash.com/photo-1542831371-29b0f74f9713?q=80&w=1400&auto=format&fit=crop" },
+  { local: "/images/gallery/honeycomb-macro.jpg", remote: "https://images.unsplash.com/photo-1505577058444-a3dab90d4253?q=80&w=1400&auto=format&fit=crop" },
+  { local: "/images/gallery/jars-shelf.jpg", remote: "https://images.unsplash.com/photo-1472586662442-3eec04b9dbda?q=80&w=1400&auto=format&fit=crop" },
+  { local: "/images/gallery/packaging-line.jpg", remote: "https://images.unsplash.com/photo-1464207687429-7505649dae38?q=80&w=1400&auto=format&fit=crop" },
+  { local: "/images/gallery/apiary-landscape.jpg", remote: "https://images.unsplash.com/photo-1519092528346-59a5bb6ec191?q=80&w=1400&auto=format&fit=crop" },
 ];
 
 // Small springy reveal helper
@@ -153,6 +156,26 @@ export default function OrganicHoneyLandingPage() {
 
   const slide = SLIDES[active];
 
+  // Local assets fallback logic
+  const [useFallback, setUseFallback] = useState(false);
+  useEffect(() => {
+    const locals = [
+      ...SLIDES.map((s) => s.local),
+      "/images/products/organic-honey-jar.jpg",
+      "/images/products/royal-jelly-spoon.jpg",
+      ...GALLERY.map((g) => g.local),
+    ];
+    let switched = false;
+    locals.forEach((u) => {
+      const img = new Image();
+      img.onerror = () => {
+        if (!switched) setUseFallback(true);
+        switched = true;
+      };
+      img.src = u;
+    });
+  }, []);
+
   return (
     <div className="min-h-screen w-full bg-amber-50/30 text-stone-900">
       {/* Sticky Nav */}
@@ -200,7 +223,7 @@ export default function OrganicHoneyLandingPage() {
               key={i}
               className="absolute inset-0 bg-center bg-cover"
               style={{
-                backgroundImage: `url(${s.src})`,
+                backgroundImage: `url(${useFallback ? s.remote : s.local})`,
               }}
               initial={{ opacity: 0 }}
               animate={{ opacity: i === active ? 1 : 0 }}
@@ -386,8 +409,7 @@ export default function OrganicHoneyLandingPage() {
               <div
                 className="h-64 bg-cover bg-center"
                 style={{
-                  backgroundImage:
-                    "url(https://images.unsplash.com/photo-1505577058444-a3dab90d4253?q=80&w=1600&auto=format&fit=crop)",
+                  backgroundImage: `url(${useFallback ? "https://images.unsplash.com/photo-1505577058444-a3dab90d4253?q=80&w=1600&auto=format&fit=crop" : "/images/products/organic-honey-jar.jpg"})`,
                 }}
                 role="img"
                 aria-label="Jar of organic honey"
@@ -423,8 +445,7 @@ export default function OrganicHoneyLandingPage() {
               <div
                 className="h-64 bg-cover bg-center"
                 style={{
-                  backgroundImage:
-                    "url(https://images.unsplash.com/photo-1580931880627-268c0c7561c6?q=80&w=1600&auto=format&fit=crop)",
+                  backgroundImage: `url(${useFallback ? "https://images.unsplash.com/photo-1580931880627-268c0c7561c6?q=80&w=1600&auto=format&fit=crop" : "/images/products/royal-jelly-spoon.jpg"})`,
                 }}
                 role="img"
                 aria-label="Fresh royal jelly in a spoon"
@@ -582,17 +603,13 @@ export default function OrganicHoneyLandingPage() {
 
           <div className="mt-8 overflow-x-auto no-scrollbar">
             <div className="flex gap-4 min-w-max">
-              {GALLERY.map((src, i) => (
+              {GALLERY.map((img, i) => (
                 <motion.img
                   key={i}
-                  src={src}
+                  src={useFallback ? img.remote : img.local}
                   alt="Honey and packaging gallery"
                   className="h-56 w-96 object-cover rounded-2xl border border-amber-100 shadow-sm"
                   whileHover={{ scale: 1.02 }}
-                  onError={(e) => {
-                    const img = e.currentTarget;
-                    img.src = "https://images.unsplash.com/photo-1505577058444-a3dab90d4253?q=80&w=1400&auto=format&fit=crop";
-                  }}
                 />
               ))}
             </div>
