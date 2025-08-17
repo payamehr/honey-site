@@ -15,7 +15,7 @@ import {
  * ✅ Product cards (Organic Honey & Royal Jelly)
  * ✅ "Farm → Market" timeline with Oman QA/standardization & packaging
  * ✅ GCC focus section (target markets)
- * ✅ Gallery (swipeable on mobile)
+ * ✅ Gallery (auto-scroll loop)
  * ✅ Contact form + social links
  * ✅ Embedded map (replace coordinates/address as needed)
  */
@@ -27,11 +27,7 @@ const CONFIG = {
   email: "sales@meloraco.com",
   phone: "+968 9000 0000",
   address: "Muscat, Oman",
-  map: {
-    lat: 23.588,
-    lng: 58.3829,
-    zoom: 11,
-  },
+  map: { lat: 23.588, lng: 58.3829, zoom: 11 },
   markets: ["UAE", "Saudi Arabia", "Qatar", "Kuwait", "Bahrain", "Oman"],
 };
 
@@ -43,21 +39,9 @@ const TRANSPARENT_PNG =
   "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR4nGNgYAAAAAMAASsJTYQAAAAASUVORK5CYII=";
 
 const SLIDES = [
-  {
-    local: "images/slides/slide-1-hero.jpg",
-    headline: "Bee to Bottle — Pure & Organic",
-    sub: "Golden hues, floral notes, enzyme-rich goodness.",
-  },
-  {
-    local: "images/slides/slide-2-apiary.jpg",
-    headline: "Craft & Care at the Apiary",
-    sub: "Sustainably managed hives and gentle extraction.",
-  },
-  {
-    local: "images/slides/slide-3-oman-packaging.jpg",
-    headline: "Certified & Packaged in Oman",
-    sub: "Tested, standardized and prepared for GCC export.",
-  },
+  { local: "images/slides/slide-1-hero.jpg", headline: "Bee to Bottle — Pure & Organic", sub: "Golden hues, floral notes, enzyme-rich goodness." },
+  { local: "images/slides/slide-2-apiary.jpg", headline: "Craft & Care at the Apiary", sub: "Sustainably managed hives and gentle extraction." },
+  { local: "images/slides/slide-3-oman-packaging.jpg", headline: "Certified & Packaged in Oman", sub: "Tested, standardized and prepared for GCC export." },
 ];
 
 const GALLERY = [
@@ -80,9 +64,7 @@ function ImageBg({ local, active }) {
       onError={() => setImgSrc(TRANSPARENT_PNG)}
       alt=""
       aria-hidden="true"
-      className={`absolute inset-0 h-full w-full object-cover transition-opacity duration-700 ${
-        active ? "opacity-100" : "opacity-0"
-      }`}
+      className={`absolute inset-0 h-full w-full object-cover transition-opacity duration-700 ${active ? "opacity-100" : "opacity-0"}`}
     />
   );
 }
@@ -146,10 +128,10 @@ export default function OrganicHoneyLandingPage() {
   // Smooth scroll for internal anchors
   useEffect(() => {
     const handler = (e) => {
-      const target = e.target;
-      if (target && target.matches && target.matches('a[href^="#"]')) {
+      const t = e.target;
+      if (t && t.matches && t.matches('a[href^="#"]')) {
         e.preventDefault();
-        const id = target.getAttribute("href").slice(1);
+        const id = t.getAttribute("href").slice(1);
         const el = document.getElementById(id);
         if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
         setMobileOpen(false);
@@ -160,6 +142,47 @@ export default function OrganicHoneyLandingPage() {
   }, []);
 
   const slide = SLIDES[active];
+
+  // ---------------- Auto-scroll Gallery (loop) ----------------
+  // Duplicate list to allow seamless wrap-around
+  const galleryLoop = useMemo(() => [...GALLERY, ...GALLERY], []);
+  const viewRef = useRef(null);    // viewport (overflow-hidden)
+  const trackRef = useRef(null);   // flex track
+  const [step, setStep] = useState(0); // pixels per shift
+
+  // Measure a card width + margin (we set explicit mr-4 => 16px)
+  useEffect(() => {
+    const first = trackRef.current?.querySelector("[data-card]");
+    if (!first) return;
+    const rect = first.getBoundingClientRect();
+    // width (offsetWidth) does not include margin; add 16 for mr-4
+    const px = Math.round(first.offsetWidth + 16);
+    if (px > 0) setStep(px);
+  }, []);
+
+  // Auto-scroll every 2s; when we pass half of track, jump back (no flash)
+  useEffect(() => {
+    if (!step) return;
+    const view = viewRef.current;
+    const track = trackRef.current;
+    if (!view || !track) return;
+
+    const timer = window.setInterval(() => {
+      const half = track.scrollWidth / 2;
+      const next = view.scrollLeft + step;
+
+      // اگر به نیمه‌ی دوم رسیدیم، بدون انیمیشن برگرد به ابتدای معادل
+      if (next >= half - 1) {
+        // جلو می‌بریم تا همون افکت «قدم» حفظ بشه
+        view.scrollLeft = next - half;
+      } else {
+        // اسکرول نرم یک قدم
+        view.scrollBy({ left: step, behavior: "smooth" });
+      }
+    }, 2000);
+
+    return () => window.clearInterval(timer);
+  }, [step]);
 
   return (
     <div className="min-h-screen w-full bg-amber-50/30 text-stone-900">
@@ -250,7 +273,6 @@ export default function OrganicHoneyLandingPage() {
       {/* HERO */}
       <section id="home" className="relative h-[92vh] w-full overflow-hidden">
         <div className="absolute inset-0">
-          {/* Background slides */}
           {SLIDES.map((s, i) => (
             <ImageBg key={i} local={s.local} active={i === active} />
           ))}
@@ -258,50 +280,24 @@ export default function OrganicHoneyLandingPage() {
         </div>
 
         <div className="relative z-10 h-full flex flex-col items-center justify-center text-center px-4">
-          <motion.h1
-            className="text-4xl sm:text-5xl md:text-6xl font-extrabold text-white drop-shadow"
-            variants={fadeUp}
-            initial="hidden"
-            animate="show"
-          >
-            {slide.headline}
+          <motion.h1 className="text-4xl sm:text-5xl md:text-6xl font-extrabold text-white drop-shadow" variants={fadeUp} initial="hidden" animate="show">
+            {SLIDES[active].headline}
           </motion.h1>
-          <motion.p
-            className="mt-4 max-w-2xl text-white/90 text-base sm:text-lg"
-            variants={fadeUp}
-            initial="hidden"
-            animate="show"
-            transition={{ delay: 0.1 }}
-          >
-            {slide.sub}
+          <motion.p className="mt-4 max-w-2xl text-white/90 text-base sm:text-lg" variants={fadeUp} initial="hidden" animate="show" transition={{ delay: 0.1 }}>
+            {SLIDES[active].sub}
           </motion.p>
-          <motion.div
-            className="mt-8 flex flex-col sm:flex-row gap-3"
-            variants={fadeUp}
-            initial="hidden"
-            animate="show"
-            transition={{ delay: 0.2 }}
-          >
-            <a
-              href="#products"
-              className="inline-flex items-center gap-2 rounded-2xl bg-white/95 px-5 py-3 text-stone-900 hover:bg-white"
-            >
+          <motion.div className="mt-8 flex flex-col sm:flex-row gap-3" variants={fadeUp} initial="hidden" animate="show" transition={{ delay: 0.2 }}>
+            <a href="#products" className="inline-flex items-center gap-2 rounded-2xl bg-white/95 px-5 py-3 text-stone-900 hover:bg-white">
               <ChevronRight className="h-4 w-4" /> Explore Products
             </a>
-            <a
-              href="#story"
-              className="inline-flex items-center gap-2 rounded-2xl bg-amber-600 px-5 py-3 text-white hover:bg-amber-700"
-            >
+            <a href="#story" className="inline-flex items-center gap-2 rounded-2xl bg-amber-600 px-5 py-3 text-white hover:bg-amber-700">
               <PlayCircle className="h-4 w-4" /> Our Story
             </a>
           </motion.div>
 
           {/* controls */}
           <div className="absolute bottom-5 inset-x-0 flex items-center justify-center gap-3">
-            <button
-              onClick={() => setAutoplay((v) => !v)}
-              className="text-white/90 text-xs border border-white/30 rounded-full px-3 py-1 hover:bg-white/10"
-            >
+            <button onClick={() => setAutoplay((v) => !v)} className="text-white/90 text-xs border border-white/30 rounded-full px-3 py-1 hover:bg-white/10">
               {autoplay ? "Pause" : "Play"}
             </button>
             <div className="w-40 h-1 bg-white/30 rounded overflow-hidden">
@@ -312,9 +308,7 @@ export default function OrganicHoneyLandingPage() {
                 <button
                   key={i}
                   onClick={() => setActive(i)}
-                  className={`h-2 w-2 rounded-full ${
-                    i === active ? "bg-white" : "bg-white/40 hover:bg-amber-50/70"
-                  }`}
+                  className={`h-2 w-2 rounded-full ${i === active ? "bg-white" : "bg-white/40 hover:bg-amber-50/70"}`}
                   aria-label={`Go to slide ${i + 1}`}
                 />
               ))}
@@ -326,59 +320,22 @@ export default function OrganicHoneyLandingPage() {
       {/* STORY / TIMELINE */}
       <section id="story" className="relative py-20 sm:py-28">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-          <motion.h2
-            className="text-3xl sm:text-4xl font-bold"
-            variants={fadeUp}
-            initial="hidden"
-            whileInView="show"
-            viewport={{ once: true, margin: "-80px" }}
-          >
+          <motion.h2 className="text-3xl sm:text-4xl font-bold" variants={fadeUp} initial="hidden" whileInView="show" viewport={{ once: true, margin: "-80px" }}>
             From Farm to Global Markets
           </motion.h2>
-          <motion.p
-            className="mt-3 text-stone-600 max-w-3xl"
-            variants={fadeUp}
-            initial="hidden"
-            whileInView="show"
-            viewport={{ once: true, margin: "-80px" }}
-          >
-            We present our organic honey from its origin at the apiaries to premium
-            retail shelves worldwide — with quality verified and packaging completed
+          <motion.p className="mt-3 text-stone-600 max-w-3xl" variants={fadeUp} initial="hidden" whileInView="show" viewport={{ once: true, margin: "-80px" }}>
+            We present our organic honey from its origin at the apiaries to premium retail shelves worldwide — with quality verified and packaging completed
             in Oman to meet national standards before export across the GCC and beyond.
           </motion.p>
 
           <div className="mt-12 grid gap-6 md:grid-cols-3">
             {[
-              {
-                icon: <Leaf className="h-6 w-6" />,
-                title: "Apiaries & Floral Sources",
-                desc: "Single-origin and seasonal blends, managed with strict organic practices.",
-              },
-              {
-                icon: <Droplets className="h-6 w-6" />,
-                title: "Gentle Harvesting & Filtration",
-                desc: "Cold extraction preserves enzymes, aroma and natural goodness.",
-              },
-              {
-                icon: <ShieldCheck className="h-6 w-6" />,
-                title: "Quality Testing in Oman",
-                desc: "Each batch is tested and standardized in Oman according to national quality requirements prior to packaging.",
-              },
-              {
-                icon: <Factory className="h-6 w-6" />,
-                title: "Packaging in Oman",
-                desc: "State-of-the-art facility for retail and HoReCa formats with full traceability.",
-              },
-              {
-                icon: <Package className="h-6 w-6" />,
-                title: "Retail-Ready Presentation",
-                desc: "Premium jars, squeezers and gift boxes designed for international markets.",
-              },
-              {
-                icon: <Truck className="h-6 w-6" />,
-                title: "Export & Distribution",
-                desc: "Logistics optimized for the GCC — {UAE, KSA, Qatar, Kuwait, Bahrain, Oman} and wider global lanes.",
-              },
+              { icon: <Leaf className="h-6 w-6" />, title: "Apiaries & Floral Sources", desc: "Single-origin and seasonal blends, managed with strict organic practices." },
+              { icon: <Droplets className="h-6 w-6" />, title: "Gentle Harvesting & Filtration", desc: "Cold extraction preserves enzymes, aroma and natural goodness." },
+              { icon: <ShieldCheck className="h-6 w-6" />, title: "Quality Testing in Oman", desc: "Each batch is tested and standardized in Oman according to national quality requirements prior to packaging." },
+              { icon: <Factory className="h-6 w-6" />, title: "Packaging in Oman", desc: "State-of-the-art facility for retail and HoReCa formats with full traceability." },
+              { icon: <Package className="h-6 w-6" />, title: "Retail-Ready Presentation", desc: "Premium jars, squeezers and gift boxes designed for international markets." },
+              { icon: <Truck className="h-6 w-6" />, title: "Export & Distribution", desc: "Logistics optimized for the GCC — {UAE, KSA, Qatar, Kuwait, Bahrain, Oman} and wider global lanes." },
             ].map((s, i) => (
               <motion.div
                 key={i}
@@ -388,9 +345,7 @@ export default function OrganicHoneyLandingPage() {
                 whileInView="show"
                 viewport={{ once: true, margin: "-80px" }}
               >
-                <div className="h-10 w-10 rounded-xl bg-amber-50 text-amber-700 flex items-center justify-center">
-                  {s.icon}
-                </div>
+                <div className="h-10 w-10 rounded-xl bg-amber-50 text-amber-700 flex items-center justify-center">{s.icon}</div>
                 <h3 className="mt-4 font-semibold text-lg">{s.title}</h3>
                 <p className="mt-2 text-sm text-stone-600">{s.desc}</p>
               </motion.div>
@@ -402,56 +357,26 @@ export default function OrganicHoneyLandingPage() {
       {/* PRODUCTS */}
       <section id="products" className="relative py-20 sm:py-28 bg-gradient-to-b from-amber-50 to-white">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-          <motion.h2
-            className="text-3xl sm:text-4xl font-bold"
-            variants={fadeUp}
-            initial="hidden"
-            whileInView="show"
-            viewport={{ once: true, margin: "-80px" }}
-          >
+          <motion.h2 className="text-3xl sm:text-4xl font-bold" variants={fadeUp} initial="hidden" whileInView="show" viewport={{ once: true, margin: "-80px" }}>
             Our Products
           </motion.h2>
-          <motion.p
-            className="mt-3 text-stone-600 max-w-3xl"
-            variants={fadeUp}
-            initial="hidden"
-            whileInView="show"
-            viewport={{ once: true, margin: "-80px" }}
-          >
-            We specialize in two premium lines: certified organic honey and fresh royal jelly.
-            Both are tested in Oman, standardized to meet national requirements, and packaged
-            for GCC retail and hospitality channels.
+          <motion.p className="mt-3 text-stone-600 max-w-3xl" variants={fadeUp} initial="hidden" whileInView="show" viewport={{ once: true, margin: "-80px" }}>
+            We specialize in two premium lines: certified organic honey and fresh royal jelly. Both are tested in Oman, standardized to meet national requirements,
+            and packaged for GCC retail and hospitality channels.
           </motion.p>
 
           <div className="mt-12 grid gap-6 md:grid-cols-2">
             {/* Organic Honey */}
-            <motion.article
-              className="rounded-3xl overflow-hidden border border-amber-100/80 bg-white shadow-sm"
-              variants={fadeUp}
-              initial="hidden"
-              whileInView="show"
-              viewport={{ once: true, margin: "-80px" }}
-            >
+            <motion.article className="rounded-3xl overflow-hidden border border-amber-100/80 bg-white shadow-sm" variants={fadeUp} initial="hidden" whileInView="show" viewport={{ once: true, margin: "-80px" }}>
               <figure className="relative aspect-[16/9] overflow-hidden">
-                <ImgLocal
-                  src="images/products/organic-honey-jar.jpg"
-                  alt="Organic honey jar"
-                  className="h-full w-full object-cover"
-                />
+                <ImgLocal src="images/products/organic-honey-jar.jpg" alt="Organic honey jar" className="h-full w-full object-cover" />
                 <div className="absolute inset-0 bg-gradient-to-t from-black/35 via-black/10 to-transparent" />
               </figure>
               <div className="p-6">
                 <h3 className="text-xl font-semibold">Organic Honey</h3>
-                <p className="mt-2 text-sm text-stone-600">
-                  Raw, unblended, and traceable. Available in monofloral and seasonal blends
-                  with clean, elegant packaging for international shelves.
-                </p>
+                <p className="mt-2 text-sm text-stone-600">Raw, unblended, and traceable. Available in monofloral and seasonal blends with clean, elegant packaging for international shelves.</p>
                 <ul className="mt-4 grid gap-2 text-sm">
-                  {[
-                    "Lab-tested for purity and origin",
-                    "Cold-filtered to preserve enzymes and aroma",
-                    "Retail (250g/400g/1kg) & HoReCa formats",
-                  ].map((t, i) => (
+                  {["Lab-tested for purity and origin", "Cold-filtered to preserve enzymes and aroma", "Retail (250g/400g/1kg) & HoReCa formats"].map((t, i) => (
                     <li key={i} className="flex items-start gap-2">
                       <CheckCircle2 className="h-4 w-4 text-amber-600 mt-0.5" />
                       <span>{t}</span>
@@ -462,33 +387,16 @@ export default function OrganicHoneyLandingPage() {
             </motion.article>
 
             {/* Royal Jelly */}
-            <motion.article
-              className="rounded-3xl overflow-hidden border border-amber-100/80 bg-white shadow-sm"
-              variants={fadeUp}
-              initial="hidden"
-              whileInView="show"
-              viewport={{ once: true, margin: "-80px" }}
-            >
+            <motion.article className="rounded-3xl overflow-hidden border border-amber-100/80 bg-white shadow-sm" variants={fadeUp} initial="hidden" whileInView="show" viewport={{ once: true, margin: "-80px" }}>
               <figure className="relative aspect-[16/9] overflow-hidden">
-                <ImgLocal
-                  src="images/products/royal-jelly-spoon.jpg"
-                  alt="Fresh royal jelly on a spoon"
-                  className="h-full w-full object-cover"
-                />
+                <ImgLocal src="images/products/royal-jelly-spoon.jpg" alt="Fresh royal jelly on a spoon" className="h-full w-full object-cover" />
                 <div className="absolute inset-0 bg-gradient-to-t from-black/35 via-black/10 to-transparent" />
               </figure>
               <div className="p-6">
                 <h3 className="text-xl font-semibold">Royal Jelly</h3>
-                <p className="mt-2 text-sm text-stone-600">
-                  Fresh royal jelly handled with strict cold-chain. Packed in insulated units
-                  ideal for pharmacies, specialty retail and wellness formats.
-                </p>
+                <p className="mt-2 text-sm text-stone-600">Fresh royal jelly handled with strict cold-chain. Packed in insulated units ideal for pharmacies, specialty retail and wellness formats.</p>
                 <ul className="mt-4 grid gap-2 text-sm">
-                  {[
-                    "Chilled distribution and storage",
-                    "Batch testing in Oman before release",
-                    "Custom private-label available",
-                  ].map((t, i) => (
+                  {["Chilled distribution and storage", "Batch testing in Oman before release", "Custom private-label available"].map((t, i) => (
                     <li key={i} className="flex items-start gap-2">
                       <CheckCircle2 className="h-4 w-4 text-amber-600 mt-0.5" />
                       <span>{t}</span>
@@ -504,51 +412,21 @@ export default function OrganicHoneyLandingPage() {
       {/* QUALITY & CERTS */}
       <section id="quality" className="relative py-20 sm:py-28">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-          <motion.h2
-            className="text-3xl sm:text-4xl font-bold"
-            variants={fadeUp}
-            initial="hidden"
-            whileInView="show"
-            viewport={{ once: true, margin: "-80px" }}
-          >
+          <motion.h2 className="text-3xl sm:text-4xl font-bold" variants={fadeUp} initial="hidden" whileInView="show" viewport={{ once: true, margin: "-80px" }}>
             Quality, Standards & Traceability
           </motion.h2>
-          <motion.p
-            className="mt-3 text-stone-600 max-w-3xl"
-            variants={fadeUp}
-            initial="hidden"
-            whileInView="show"
-            viewport={{ once: true, margin: "-80px" }}
-          >
-            Our honey and royal jelly undergo laboratory testing in Oman and are
-            standardized to comply with national requirements prior to final packaging.
-            Each batch receives a traceable ID that links back to apiary, season and
-            lab reports.
+          <motion.p className="mt-3 text-stone-600 max-w-3xl" variants={fadeUp} initial="hidden" whileInView="show" viewport={{ once: true, margin: "-80px" }}>
+            Our honey and royal jelly undergo laboratory testing in Oman and are standardized to comply with national requirements prior to final packaging.
+            Each batch receives a traceable ID that links back to apiary, season and lab reports.
           </motion.p>
 
           <div className="mt-10 grid gap-6 md:grid-cols-3">
             {[
-              {
-                title: "Laboratory Tested",
-                desc: "Purity, authenticity and safety checks performed for every batch.",
-              },
-              {
-                title: "Standardized in Oman",
-                desc: "Quality verified according to Oman’s national standards before packaging.",
-              },
-              {
-                title: "Traceable by Batch",
-                desc: "Full visibility from apiary to retail with digital batch IDs.",
-              },
+              { title: "Laboratory Tested", desc: "Purity, authenticity and safety checks performed for every batch." },
+              { title: "Standardized in Oman", desc: "Quality verified according to Oman’s national standards before packaging." },
+              { title: "Traceable by Batch", desc: "Full visibility from apiary to retail with digital batch IDs." },
             ].map((card, i) => (
-              <motion.div
-                key={i}
-                className="rounded-2xl border border-amber-100 bg-white p-6 shadow-sm"
-                variants={fadeUp}
-                initial="hidden"
-                whileInView="show"
-                viewport={{ once: true, margin: "-80px" }}
-              >
+              <motion.div key={i} className="rounded-2xl border border-amber-100 bg-white p-6 shadow-sm" variants={fadeUp} initial="hidden" whileInView="show" viewport={{ once: true, margin: "-80px" }}>
                 <h3 className="font-semibold">{card.title}</h3>
                 <p className="mt-2 text-sm text-stone-600">{card.desc}</p>
               </motion.div>
@@ -560,32 +438,16 @@ export default function OrganicHoneyLandingPage() {
       {/* MARKETS (GCC) */}
       <section id="markets" className="relative py-20 sm:py-28 bg-neutral-900 text-white">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-          <motion.h2
-            className="text-3xl sm:text-4xl font-bold"
-            variants={fadeUp}
-            initial="hidden"
-            whileInView="show"
-            viewport={{ once: true, margin: "-80px" }}
-          >
+          <motion.h2 className="text-3xl sm:text-4xl font-bold" variants={fadeUp} initial="hidden" whileInView="show" viewport={{ once: true, margin: "-80px" }}>
             Built for GCC Markets
           </motion.h2>
-          <motion.p
-            className="mt-3 text-white/80 max-w-3xl"
-            variants={fadeUp}
-            initial="hidden"
-            whileInView="show"
-            viewport={{ once: true, margin: "-80px" }}
-          >
-            Our initial focus is the Gulf Cooperation Council. We tailor formats, labeling
-            and logistics to the requirements of retailers and distributors across the region.
+          <motion.p className="mt-3 text-white/80 max-w-3xl" variants={fadeUp} initial="hidden" whileInView="show" viewport={{ once: true, margin: "-80px" }}>
+            Our initial focus is the Gulf Cooperation Council. We tailor formats, labeling and logistics to the requirements of retailers and distributors across the region.
           </motion.p>
 
           <div className="mt-10 grid gap-4 grid-cols-2 sm:grid-cols-3 md:grid-cols-6">
             {CONFIG.markets.map((m) => (
-              <div
-                key={m}
-                className="rounded-xl bg-white/5 border border-white/10 px-4 py-3 text-center"
-              >
+              <div key={m} className="rounded-xl bg-white/5 border border-white/10 px-4 py-3 text-center">
                 <span className="text-sm font-medium">{m}</span>
               </div>
             ))}
@@ -593,52 +455,40 @@ export default function OrganicHoneyLandingPage() {
 
           <div className="mt-10 rounded-3xl bg-white/5 border border-white/10 p-6">
             <h3 className="font-semibold">Distribution & Private Label</h3>
-            <p className="mt-2 text-white/80 text-sm">
-              We welcome partnerships with regional distributors and modern trade. Private
-              label and bespoke blends are available on request.
-            </p>
-            <a
-              href="#contact"
-              className="mt-4 inline-flex items-center gap-2 rounded-2xl bg-amber-500 px-4 py-2 text-stone-900 hover:bg-amber-400"
-            >
+            <p className="mt-2 text-white/80 text-sm">We welcome partnerships with regional distributors and modern trade. Private label and bespoke blends are available on request.</p>
+            <a href="#contact" className="mt-4 inline-flex items-center gap-2 rounded-2xl bg-amber-500 px-4 py-2 text-stone-900 hover:bg-amber-400">
               Start a Conversation <ChevronRight className="h-4 w-4" />
             </a>
           </div>
         </div>
       </section>
 
-      {/* GALLERY */}
+      {/* GALLERY (auto-scroll loop) */}
       <section id="gallery" className="relative py-20 sm:py-28">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-          <motion.h2
-            className="text-3xl sm:text-4xl font-bold"
-            variants={fadeUp}
-            initial="hidden"
-            whileInView="show"
-            viewport={{ once: true, margin: "-80px" }}
-          >
+          <motion.h2 className="text-3xl sm:text-4xl font-bold" variants={fadeUp} initial="hidden" whileInView="show" viewport={{ once: true, margin: "-80px" }}>
             Visuals & Packaging
           </motion.h2>
-          <motion.p
-            className="mt-3 text-stone-600 max-w-3xl"
-            variants={fadeUp}
-            initial="hidden"
-            whileInView="show"
-            viewport={{ once: true, margin: "-80px" }}
-          >
+          <motion.p className="mt-3 text-stone-600 max-w-3xl" variants={fadeUp} initial="hidden" whileInView="show" viewport={{ once: true, margin: "-80px" }}>
             A selection of imagery from our apiaries, lab, packaging and shelf-ready formats.
           </motion.p>
 
-          <div className="mt-8 overflow-x-auto no-scrollbar">
-            <div className="flex gap-4 min-w-max">
-              {GALLERY.map((img, i) => (
-                <motion.div key={i} whileHover={{ scale: 1.02 }} className="h-56 w-96">
+          {/* Viewport */}
+          <div ref={viewRef} className="mt-8 overflow-hidden">
+            {/* Track */}
+            <div ref={trackRef} className="flex">
+              {galleryLoop.map((img, i) => (
+                <div
+                  key={`${img.local}-${i}`}
+                  data-card
+                  className="shrink-0 w-96 h-56 mr-4 rounded-2xl overflow-hidden border border-amber-100 shadow-sm"
+                >
                   <ImgLocal
                     src={img.local}
                     alt="Honey and packaging gallery"
-                    className="h-full w-full object-cover rounded-2xl border border-amber-100 shadow-sm"
+                    className="h-full w-full object-cover"
                   />
-                </motion.div>
+                </div>
               ))}
             </div>
           </div>
@@ -648,22 +498,10 @@ export default function OrganicHoneyLandingPage() {
       {/* CONTACT + MAP */}
       <section id="contact" className="relative py-20 sm:py-28 bg-gradient-to-b from-white to-amber-50/40">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-          <motion.h2
-            className="text-3xl sm:text-4xl font-bold"
-            variants={fadeUp}
-            initial="hidden"
-            whileInView="show"
-            viewport={{ once: true, margin: "-80px" }}
-          >
+          <motion.h2 className="text-3xl sm:text-4xl font-bold" variants={fadeUp} initial="hidden" whileInView="show" viewport={{ once: true, margin: "-80px" }}>
             Contact Us
           </motion.h2>
-          <motion.p
-            className="mt-3 text-stone-600 max-w-3xl"
-            variants={fadeUp}
-            initial="hidden"
-            whileInView="show"
-            viewport={{ once: true, margin: "-80px" }}
-          >
+          <motion.p className="mt-3 text-stone-600 max-w-3xl" variants={fadeUp} initial="hidden" whileInView="show" viewport={{ once: true, margin: "-80px" }}>
             Tell us about your needs — distribution, private label, or bulk supply.
           </motion.p>
 
@@ -699,10 +537,7 @@ export default function OrganicHoneyLandingPage() {
                   <label className="text-sm">Message</label>
                   <textarea rows={4} className="mt-1 w-full rounded-xl border border-neutral-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-amber-500" />
                 </div>
-                <button
-                  type="submit"
-                  className="inline-flex items-center gap-2 rounded-2xl bg-amber-600 px-4 py-2 text-white hover:bg-amber-700"
-                >
+                <button type="submit" className="inline-flex items-center gap-2 rounded-2xl bg-amber-600 px-4 py-2 text-white hover:bg-amber-700">
                   Send Message
                 </button>
                 <p className="text-xs text-stone-500">
@@ -732,13 +567,9 @@ export default function OrganicHoneyLandingPage() {
           <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-6">
             <div>
               <div className="flex items-center gap-2 font-semibold"><Leaf className="h-5 w-5" /> {CONFIG.company}</div>
-              <p className="mt-2 text-sm text-stone-600 max-w-lg">
-                {CONFIG.tagline}
-              </p>
+              <p className="mt-2 text-sm text-stone-600 max-w-lg">{CONFIG.tagline}</p>
             </div>
-            <div className="text-sm text-stone-500">
-              © {new Date().getFullYear()} {CONFIG.company}. All rights reserved.
-            </div>
+            <div className="text-sm text-stone-500">© {new Date().getFullYear()} {CONFIG.company}. All rights reserved.</div>
           </div>
         </div>
       </footer>
