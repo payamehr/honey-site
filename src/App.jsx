@@ -55,98 +55,71 @@ const CONFIG = {
   markets: ["UAE", "Saudi Arabia", "Qatar", "Kuwait", "Bahrain", "Oman"],
 };
 
-// ---------- ASSET + DATA + PER-IMAGE FALLBACK (robust) ----------
+// ---------- LOCAL-ONLY ASSETS (no remote) ----------
 
 // BASE-aware برای GitHub Pages (base=/honey-site/)
 const asset = (path) =>
   `${import.meta.env.BASE_URL}${String(path).replace(/^\/+/, "")}`;
 
-// اسلایدها: فقط نسبت به public/ بنویس (یعنی images/... نه public/images/...)
+// یک پیکسل ترنسپرنت برای جلوگیری از لوپ خطای img (فالبک بی‌نیاز از ریموت)
+const TRANSPARENT_PNG =
+  "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR4nGNgYAAAAAMAASsJTYQAAAAASUVORK5CYII=";
+
+// اسلایدها: فقط مسیرهای لوکال (نسبت به public/)
 const SLIDES = [
   {
     local: "images/slides/slide-1-hero.jpg",
-    remote:
-      "https://images.unsplash.com/photo-1505577058444-a3dab90d4253?q=80&w=1600&auto=format&fit=crop",
     headline: "Bee to Bottle — Pure & Organic",
     sub: "Golden hues, floral notes, enzyme-rich goodness.",
   },
   {
     local: "images/slides/slide-2-apiary.jpg",
-    remote:
-      "https://images.unsplash.com/photo-1519160558534-5790a5e4a3b1?q=80&w=1600&auto=format&fit=crop",
     headline: "Craft & Care at the Apiary",
     sub: "Sustainably managed hives and gentle extraction.",
   },
   {
     local: "images/slides/slide-3-oman-packaging.jpg",
-    remote:
-      "https://images.unsplash.com/photo-1542831371-29b0f74f9713?q=80&w=1600&auto=format&fit=crop",
     headline: "Certified & Packaged in Oman",
     sub: "Tested, standardized and prepared for GCC export.",
   },
 ];
 
+// گالری: فقط لوکال
 const GALLERY = [
-  {
-    local: "images/gallery/apiary-closeup.jpg",
-    remote:
-      "https://images.unsplash.com/photo-1519160558534-5790a5e4a3b1?q=80&w=1400&auto=format&fit=crop",
-  },
-  {
-    local: "images/gallery/oman-lab-testing.jpg",
-    remote:
-      "https://images.unsplash.com/photo-1542831371-29b0f74f9713?q=80&w=1400&auto=format&fit=crop",
-  },
-  {
-    local: "images/gallery/honeycomb-macro.jpg",
-    remote:
-      "https://images.unsplash.com/photo-1505577058444-a3dab90d4253?q=80&w=1400&auto=format&fit=crop",
-  },
-  {
-    local: "images/gallery/jars-shelf.jpg",
-    remote:
-      "https://images.unsplash.com/photo-1472586662442-3eec04b9dbda?q=80&w=1400&auto=format&fit=crop",
-  },
-  {
-    local: "images/gallery/packaging-line.jpg",
-    remote:
-      "https://images.unsplash.com/photo-1464207687429-7505649dae38?q=80&w=1400&auto=format&fit=crop",
-  },
-  {
-    local: "images/gallery/apiary-landscape.jpg",
-    remote:
-      "https://images.unsplash.com/photo-1519092528346-59a5bb6ec191?q=80&w=1400&auto=format&fit=crop",
-  },
+  { local: "images/gallery/apiary-closeup.jpg" },
+  { local: "images/gallery/oman-lab-testing.jpg" },
+  { local: "images/gallery/honeycomb-macro.jpg" },
+  { local: "images/gallery/jars-shelf.jpg" },
+  { local: "images/gallery/packaging-line.jpg" },
+  { local: "images/gallery/apiary-landscape.jpg" },
 ];
 
-// کمک کوچک برای پس‌زمینه‌ی اسلاید با fallback خودکار
-function ImageBg({ local, remote, active }) {
-  const [src, setSrc] = React.useState(asset(local));
+// پس‌زمینه‌ی اسلاید فقط از لوکال؛ اگر نبود، به ترنسپرنت می‌افتد (نه ریموت)
+function ImageBg({ local, active }) {
+  const src = React.useMemo(() => asset(local), [local]);
+  const [imgSrc, setImgSrc] = React.useState(src);
 
-  // هر بار اسلاید عوض شد/مسیر عوض شد، دوباره تلاش کن از لوکال شروع کنی
-  React.useEffect(() => {
-    setSrc(asset(local));
-  }, [local]);
+  React.useEffect(() => setImgSrc(src), [src]);
 
   return (
     <img
-      src={src}
-      onError={() => setSrc(remote)} // اگر لوکال نبود → ریموت
+      src={imgSrc}
+      onError={() => setImgSrc(TRANSPARENT_PNG)}
       alt=""
       aria-hidden="true"
       className={`absolute inset-0 h-full w-full object-cover transition-opacity duration-700 ${
         active ? "opacity-100" : "opacity-0"
       }`}
-      // نکته: چون img است، هم در Dev و هم در Pages درست عمل می‌کند
     />
   );
 }
 
-// Small springy reveal helper (سر جایش بماند)
+// Small springy reveal helper (بدون تغییر)
 const fadeUp = {
   hidden: { opacity: 0, y: 20 },
   show: { opacity: 1, y: 0, transition: { duration: 0.6 } },
 };
+
 
 
 // ------------------------ MAIN PAGE ------------------------
