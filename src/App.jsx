@@ -388,6 +388,7 @@ export default function OrganicHoneyLandingPage() {
           >
             Our Products
           </motion.h2>
+      
           <motion.p
             className="mt-3 text-stone-600 max-w-3xl"
             variants={fadeUp}
@@ -399,23 +400,89 @@ export default function OrganicHoneyLandingPage() {
             Both are tested in Oman, standardized to meet national requirements, and packaged
             for GCC retail and hospitality channels.
           </motion.p>
-
+      
           <div className="mt-12 grid gap-6 md:grid-cols-2">
             {/* Organic Honey */}
-            <div
-              className="h-64 bg-cover bg-center"
-              style={{ backgroundImage: `url(${asset("images/products/organic-honey-jar.jpg")})` }}
-              role="img"
-              aria-label="Jar of organic honey"
-            />
-
+            <motion.article
+              className="rounded-3xl overflow-hidden border border-amber-100/80 bg-white shadow-sm"
+              variants={fadeUp}
+              initial="hidden"
+              whileInView="show"
+              viewport={{ once: true, margin: "-80px" }}
+            >
+              <figure className="relative aspect-[16/9] overflow-hidden">
+                <img
+                  src={asset("images/products/organic-honey-jar.jpg")}
+                  onError={(e) => (e.currentTarget.src = TRANSPARENT_PNG)}
+                  alt="Organic honey jar"
+                  className="h-full w-full object-cover"
+                  loading="lazy"
+                  decoding="async"
+                />
+                <div className="absolute inset-0 bg-gradient-to-t from-black/35 via-black/10 to-transparent" />
+              </figure>
+      
+              <div className="p-6">
+                <h3 className="text-xl font-semibold">Organic Honey</h3>
+                <p className="mt-2 text-sm text-stone-600">
+                  Raw, unblended, and traceable. Available in monofloral and seasonal blends
+                  with clean, elegant packaging for international shelves.
+                </p>
+                <ul className="mt-4 grid gap-2 text-sm">
+                  {[
+                    "Lab-tested for purity and origin",
+                    "Cold-filtered to preserve enzymes and aroma",
+                    "Retail (250g/400g/1kg) & HoReCa formats",
+                  ].map((t, i) => (
+                    <li key={i} className="flex items-start gap-2">
+                      <CheckCircle2 className="h-4 w-4 text-amber-600 mt-0.5" />
+                      <span>{t}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            </motion.article>
+      
             {/* Royal Jelly */}
-            <div
-              className="h-64 bg-cover bg-center"
-              style={{ backgroundImage: `url(${asset("images/products/royal-jelly-spoon.jpg")})` }}
-              role="img"
-              aria-label="Fresh royal jelly in a spoon"
-            />
+            <motion.article
+              className="rounded-3xl overflow-hidden border border-amber-100/80 bg-white shadow-sm"
+              variants={fadeUp}
+              initial="hidden"
+              whileInView="show"
+              viewport={{ once: true, margin: "-80px" }}
+            >
+              <figure className="relative aspect-[16/9] overflow-hidden">
+                <img
+                  src={asset("images/products/royal-jelly-spoon.jpg")}
+                  onError={(e) => (e.currentTarget.src = TRANSPARENT_PNG)}
+                  alt="Fresh royal jelly on a spoon"
+                  className="h-full w-full object-cover"
+                  loading="lazy"
+                  decoding="async"
+                />
+                <div className="absolute inset-0 bg-gradient-to-t from-black/35 via-black/10 to-transparent" />
+              </figure>
+      
+              <div className="p-6">
+                <h3 className="text-xl font-semibold">Royal Jelly</h3>
+                <p className="mt-2 text-sm text-stone-600">
+                  Fresh royal jelly handled with strict cold-chain. Packed in insulated units
+                  ideal for pharmacies, specialty retail and wellness formats.
+                </p>
+                <ul className="mt-4 grid gap-2 text-sm">
+                  {[
+                    "Chilled distribution and storage",
+                    "Batch testing in Oman before release",
+                    "Custom private-label available",
+                  ].map((t, i) => (
+                    <li key={i} className="flex items-start gap-2">
+                      <CheckCircle2 className="h-4 w-4 text-amber-600 mt-0.5" />
+                      <span>{t}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            </motion.article>
           </div>
         </div>
       </section>
