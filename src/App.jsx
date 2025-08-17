@@ -1,6 +1,11 @@
 import React, { useEffect, useRef, useState } from "react";
 import { motion } from "framer-motion";
 import {
+     Leaf, Droplets, Package, ShieldCheck, Truck, Factory, MapPin, Phone, Mail,
+     CheckCircle2, ChevronRight, Instagram, Facebook, Linkedin, MessageCircle, PlayCircle,
+  +  Menu, X
+} from "lucide-react";
+import {
   Leaf,
   Droplets,
   Package,
