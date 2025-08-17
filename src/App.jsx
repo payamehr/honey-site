@@ -60,7 +60,7 @@ const asset = (path) => `${import.meta.env.BASE_URL}${path.replace(/^\/+/, "")}`
 
 const SLIDES = [
   {
-    local: "images/slides/slide-1-hero.jpg",
+    local: "public/images/slides/slide-1-hero.jpg",
     remote: "https://images.unsplash.com/photo-1505577058444-a3dab90d4253?q=80&w=1600&auto=format&fit=crop",
     headline: "Bee to Bottle — Pure & Organic",
     sub: "Golden hues, floral notes, enzyme-rich goodness.",
