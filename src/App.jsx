@@ -8,16 +8,7 @@ import {
 
 /**
  * Organic Honey & Royal Jelly — Single-Page Product Presentation
- * ------------------------------------------------------------------
- * ✅ Fully responsive (mobile → desktop)
- * ✅ Full-bleed hero with autoplay slideshow
- * ✅ Smooth section reveal with Framer Motion
- * ✅ Product cards (Organic Honey & Royal Jelly)
- * ✅ "Farm → Market" timeline with Oman QA/standardization & packaging
- * ✅ GCC focus section (target markets)
- * ✅ Gallery (auto-scroll loop)
- * ✅ Contact form + social links
- * ✅ Embedded map (replace coordinates/address as needed)
+ * (gallery: seamless infinite loop)
  */
 
 // ------------------------ CONFIG ------------------------
@@ -31,7 +22,7 @@ const CONFIG = {
   markets: ["UAE", "Saudi Arabia", "Qatar", "Kuwait", "Bahrain", "Oman"],
 };
 
-// ---------- LOCAL-ONLY ASSETS (no remote) ----------
+// ---------- LOCAL-ONLY ASSETS ----------
 const asset = (path) =>
   `${import.meta.env.BASE_URL}${String(path).replace(/^\/+/, "")}`;
 
@@ -53,7 +44,7 @@ const GALLERY = [
   { local: "images/gallery/apiary-landscape.jpg" },
 ];
 
-// پس‌زمینه‌ی اسلاید با فالبک شفاف (بدون ریموت)
+// پس‌زمینه‌ی اسلاید با فالبک شفاف
 function ImageBg({ local, active }) {
   const src = useMemo(() => asset(local), [local]);
   const [imgSrc, setImgSrc] = useState(src);
@@ -69,7 +60,7 @@ function ImageBg({ local, active }) {
   );
 }
 
-// <img> عمومی برای محصولات/گالری (لوکال-only)
+// <img> لوکال عمومی
 function ImgLocal({ src, alt, className }) {
   const resolved = useMemo(() => asset(src), [src]);
   const [s, setS] = useState(resolved);
@@ -86,6 +77,26 @@ function ImgLocal({ src, alt, className }) {
   );
 }
 
+// نمای یک ردیف گالری
+function GalleryRow({ items }) {
+  return (
+    <div className="flex min-w-max">
+      {items.map((img, i) => (
+        <div
+          key={`${img.local}-${i}`}
+          className="shrink-0 w-96 h-56 mr-4 rounded-2xl overflow-hidden border border-amber-100 shadow-sm"
+        >
+          <ImgLocal
+            src={img.local}
+            alt="Honey and packaging gallery"
+            className="h-full w-full object-cover"
+          />
+        </div>
+      ))}
+    </div>
+  );
+}
+
 // Small springy reveal helper
 const fadeUp = {
   hidden: { opacity: 0, y: 20 },
@@ -99,7 +110,7 @@ export default function OrganicHoneyLandingPage() {
   const [mobileOpen, setMobileOpen] = useState(false);
   const intervalRef = useRef(null);
 
-  // sanity checks (سبک)
+  // sanity
   useEffect(() => {
     console.assert(Array.isArray(SLIDES) && SLIDES.length >= 3, "SLIDES length");
     console.assert(Array.isArray(GALLERY) && GALLERY.length >= 6, "GALLERY length");
@@ -115,7 +126,7 @@ export default function OrganicHoneyLandingPage() {
     return () => intervalRef.current && window.clearInterval(intervalRef.current);
   }, [autoplay]);
 
-  // Progress bar restart on active change
+  // Progress bar restart
   useEffect(() => {
     const bar = document.querySelector("#progressBar");
     if (bar && bar.classList) {
@@ -125,7 +136,7 @@ export default function OrganicHoneyLandingPage() {
     }
   }, [active]);
 
-  // Smooth scroll for internal anchors
+  // Smooth scroll
   useEffect(() => {
     const handler = (e) => {
       const t = e.target;
@@ -141,48 +152,28 @@ export default function OrganicHoneyLandingPage() {
     return () => document.removeEventListener("click", handler);
   }, []);
 
-  const slide = SLIDES[active];
+  // -------- Gallery: seamless infinite loop --------
+  const galleryTrackRef = useRef(null);
+  const firstRowRef = useRef(null);
 
-  // ---------------- Auto-scroll Gallery (loop) ----------------
-  // Duplicate list to allow seamless wrap-around
-  const galleryLoop = useMemo(() => [...GALLERY, ...GALLERY], []);
-  const viewRef = useRef(null);    // viewport (overflow-hidden)
-  const trackRef = useRef(null);   // flex track
-  const [step, setStep] = useState(0); // pixels per shift
+  // سرعت: پیکسل بر ثانیه
+  const SPEED = 120; // می‌تونی زیاد/کم کنی
 
-  // Measure a card width + margin (we set explicit mr-4 => 16px)
+  // مدت انیمیشن را بر اساس عرض واقعی ردیف اول محاسبه می‌کنیم
   useEffect(() => {
-    const first = trackRef.current?.querySelector("[data-card]");
-    if (!first) return;
-    const rect = first.getBoundingClientRect();
-    // width (offsetWidth) does not include margin; add 16 for mr-4
-    const px = Math.round(first.offsetWidth + 16);
-    if (px > 0) setStep(px);
+    const calc = () => {
+      const row = firstRowRef.current;
+      const track = galleryTrackRef.current;
+      if (!row || !track) return;
+      const width = row.scrollWidth; // عرض نصفه (یک ردیف)
+      // مدت = مسافت (عرض نصفه) / سرعت
+      const durationSec = Math.max(8, Math.round(width / SPEED));
+      track.style.setProperty("--gallery-duration", `${durationSec}s`);
+    };
+    calc();
+    window.addEventListener("resize", calc);
+    return () => window.removeEventListener("resize", calc);
   }, []);
-
-  // Auto-scroll every 2s; when we pass half of track, jump back (no flash)
-  useEffect(() => {
-    if (!step) return;
-    const view = viewRef.current;
-    const track = trackRef.current;
-    if (!view || !track) return;
-
-    const timer = window.setInterval(() => {
-      const half = track.scrollWidth / 2;
-      const next = view.scrollLeft + step;
-
-      // اگر به نیمه‌ی دوم رسیدیم، بدون انیمیشن برگرد به ابتدای معادل
-      if (next >= half - 1) {
-        // جلو می‌بریم تا همون افکت «قدم» حفظ بشه
-        view.scrollLeft = next - half;
-      } else {
-        // اسکرول نرم یک قدم
-        view.scrollBy({ left: step, behavior: "smooth" });
-      }
-    }, 2000);
-
-    return () => window.clearInterval(timer);
-  }, [step]);
 
   return (
     <div className="min-h-screen w-full bg-amber-50/30 text-stone-900">
@@ -231,7 +222,7 @@ export default function OrganicHoneyLandingPage() {
           </button>
         </div>
 
-        {/* Mobile panel - CSS transition */}
+        {/* Mobile panel */}
         <div
           className={`md:hidden overflow-hidden border-t border-amber-100 bg-amber-50/95 backdrop-blur transition-[max-height,opacity] duration-300 ${
             mobileOpen ? "opacity-100 max-h-[70vh]" : "opacity-0 max-h-0"
@@ -409,33 +400,7 @@ export default function OrganicHoneyLandingPage() {
         </div>
       </section>
 
-      {/* QUALITY & CERTS */}
-      <section id="quality" className="relative py-20 sm:py-28">
-        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-          <motion.h2 className="text-3xl sm:text-4xl font-bold" variants={fadeUp} initial="hidden" whileInView="show" viewport={{ once: true, margin: "-80px" }}>
-            Quality, Standards & Traceability
-          </motion.h2>
-          <motion.p className="mt-3 text-stone-600 max-w-3xl" variants={fadeUp} initial="hidden" whileInView="show" viewport={{ once: true, margin: "-80px" }}>
-            Our honey and royal jelly undergo laboratory testing in Oman and are standardized to comply with national requirements prior to final packaging.
-            Each batch receives a traceable ID that links back to apiary, season and lab reports.
-          </motion.p>
-
-          <div className="mt-10 grid gap-6 md:grid-cols-3">
-            {[
-              { title: "Laboratory Tested", desc: "Purity, authenticity and safety checks performed for every batch." },
-              { title: "Standardized in Oman", desc: "Quality verified according to Oman’s national standards before packaging." },
-              { title: "Traceable by Batch", desc: "Full visibility from apiary to retail with digital batch IDs." },
-            ].map((card, i) => (
-              <motion.div key={i} className="rounded-2xl border border-amber-100 bg-white p-6 shadow-sm" variants={fadeUp} initial="hidden" whileInView="show" viewport={{ once: true, margin: "-80px" }}>
-                <h3 className="font-semibold">{card.title}</h3>
-                <p className="mt-2 text-sm text-stone-600">{card.desc}</p>
-              </motion.div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* MARKETS (GCC) */}
+      {/* MARKETS */}
       <section id="markets" className="relative py-20 sm:py-28 bg-neutral-900 text-white">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           <motion.h2 className="text-3xl sm:text-4xl font-bold" variants={fadeUp} initial="hidden" whileInView="show" viewport={{ once: true, margin: "-80px" }}>
@@ -463,7 +428,7 @@ export default function OrganicHoneyLandingPage() {
         </div>
       </section>
 
-      {/* GALLERY (auto-scroll loop) */}
+      {/* GALLERY — seamless infinite loop */}
       <section id="gallery" className="relative py-20 sm:py-28">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           <motion.h2 className="text-3xl sm:text-4xl font-bold" variants={fadeUp} initial="hidden" whileInView="show" viewport={{ once: true, margin: "-80px" }}>
@@ -473,23 +438,18 @@ export default function OrganicHoneyLandingPage() {
             A selection of imagery from our apiaries, lab, packaging and shelf-ready formats.
           </motion.p>
 
-          {/* Viewport */}
-          <div ref={viewRef} className="mt-8 overflow-hidden">
-            {/* Track */}
-            <div ref={trackRef} className="flex">
-              {galleryLoop.map((img, i) => (
-                <div
-                  key={`${img.local}-${i}`}
-                  data-card
-                  className="shrink-0 w-96 h-56 mr-4 rounded-2xl overflow-hidden border border-amber-100 shadow-sm"
-                >
-                  <ImgLocal
-                    src={img.local}
-                    alt="Honey and packaging gallery"
-                    className="h-full w-full object-cover"
-                  />
-                </div>
-              ))}
+          {/* Viewport (pause on hover) */}
+          <div className="mt-8 overflow-hidden group">
+            {/* Track: دو ردیف یکسان پشت‌سرهم */}
+            <div
+              ref={galleryTrackRef}
+              className="flex animate-gallery-loop group-hover:[animation-play-state:paused]"
+              style={{ "--gallery-duration": "20s" }}
+            >
+              <div ref={firstRowRef}>
+                <GalleryRow items={GALLERY} />
+              </div>
+              <GalleryRow items={GALLERY} />
             </div>
           </div>
         </div>
@@ -574,13 +534,23 @@ export default function OrganicHoneyLandingPage() {
         </div>
       </footer>
 
-      {/* Tailwind helpers */}
+      {/* Tailwind helpers + gallery animation */}
       <style>{`
         .no-scrollbar::-webkit-scrollbar { display: none; }
         .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
         .animate-progress { animation: progress 5s linear forwards; }
         @keyframes progress { from { width: 0% } to { width: 100% } }
         .honey-ring { box-shadow: 0 0 0 4px rgba(245, 158, 11, 0.15); }
+
+        /* گالری: انیمیشن بی‌درز */
+        .animate-gallery-loop {
+          animation: gallery-loop var(--gallery-duration, 20s) linear infinite;
+          will-change: transform;
+        }
+        @keyframes gallery-loop {
+          0%   { transform: translateX(0); }
+          100% { transform: translateX(-50%); } /* نصفِ ترک (یعنی عرض یک ردیف) */
+        }
       `}</style>
     </div>
   );
