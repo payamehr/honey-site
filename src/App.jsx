@@ -22,9 +22,9 @@ import {
 
 // ------------------------ CONFIG ------------------------
 const CONFIG = {
-  company: "Al-Khaleej Naturals",
+  company: "Melora",
   tagline: "From our apiaries to the world — certified, pure & organic.",
-  email: "sales@alkhaleejnaturals.com",
+  email: "sales@meloraco.com",
   phone: "+968 9000 0000",
   address: "Muscat, Oman",
   map: {
