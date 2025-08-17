@@ -55,12 +55,13 @@ const CONFIG = {
   markets: ["UAE", "Saudi Arabia", "Qatar", "Kuwait", "Bahrain", "Oman"],
 };
 
-// ---------- ASSET + DATA + PER-IMAGE FALLBACK (drop-in) ----------
+// ---------- ASSET + DATA + PER-IMAGE FALLBACK (robust) ----------
 
-// 1) BASE-aware resolver (برای GitHub Pages با base=/honey-site/)
-const asset = (path) => `${import.meta.env.BASE_URL}${String(path).replace(/^\/+/, "")}`;
+// BASE-aware برای GitHub Pages (base=/honey-site/)
+const asset = (path) =>
+  `${import.meta.env.BASE_URL}${String(path).replace(/^\/+/, "")}`;
 
-// 2) اسلایدها (فقط نسبت به public/ بنویس؛ یعنی images/... نه public/images/...)
+// اسلایدها: فقط نسبت به public/ بنویس (یعنی images/... نه public/images/...)
 const SLIDES = [
   {
     local: "images/slides/slide-1-hero.jpg",
@@ -85,7 +86,6 @@ const SLIDES = [
   },
 ];
 
-// 3) گالری
 const GALLERY = [
   {
     local: "images/gallery/apiary-closeup.jpg",
@@ -119,56 +119,34 @@ const GALLERY = [
   },
 ];
 
-// 4) مدیر فالبک به‌ازای هر تصویر (بدون وابستگی سراسری)
-const _failedLocals = new Set();
+// کمک کوچک برای پس‌زمینه‌ی اسلاید با fallback خودکار
+function ImageBg({ local, remote, active }) {
+  const [src, setSrc] = React.useState(asset(local));
 
-/** برگرداندن src نهایی: تا وقتی لوکال fail نشده، لوکال را می‌دهد؛ در غیر این‌صورت ریموت */
-const resolveSrc = (local, remote) =>
-  _failedLocals.has(local) ? remote : asset(local);
-
-/** پرلود لوکال‌ها + تریگر رندر در صورت خطا (برای سوییچ فوری به ریموت) */
-const useLocalImageFallback = () => {
-  // یک فورس‌ریفِرش سبک تا وقتی فایلی fail شد، UI فوراً آپدیت شود
-  const [, force] = React.useReducer((x) => x + 1, 0);
-
+  // هر بار اسلاید عوض شد/مسیر عوض شد، دوباره تلاش کن از لوکال شروع کنی
   React.useEffect(() => {
-    const locals = [
-      ...SLIDES.map((s) => s.local),
-      ...GALLERY.map((g) => g.local),
-      // اگر فایل‌های دیگری هم داری، اینجا اضافه کن (محصولات و ...)
-      // "images/products/organic-honey-jar.jpg",
-      // "images/products/royal-jelly-spoon.jpg",
-    ];
-    locals.forEach((loc) => {
-      const img = new Image();
-      img.onload = () => {}; // ok
-      img.onerror = () => {
-        if (!_failedLocals.has(loc)) {
-          _failedLocals.add(loc);
-          force(); // باعث می‌شود UI دوباره رندر شود و به ریموت سوییچ کند
-        }
-      };
-      img.src = asset(loc);
-    });
-  }, []);
-};
+    setSrc(asset(local));
+  }, [local]);
 
-// 5) انیمیشن کوتاه (بدون تغییر)
+  return (
+    <img
+      src={src}
+      onError={() => setSrc(remote)} // اگر لوکال نبود → ریموت
+      alt=""
+      aria-hidden="true"
+      className={`absolute inset-0 h-full w-full object-cover transition-opacity duration-700 ${
+        active ? "opacity-100" : "opacity-0"
+      }`}
+      // نکته: چون img است، هم در Dev و هم در Pages درست عمل می‌کند
+    />
+  );
+}
+
+// Small springy reveal helper (سر جایش بماند)
 const fadeUp = {
   hidden: { opacity: 0, y: 20 },
   show: { opacity: 1, y: 0, transition: { duration: 0.6 } },
 };
-
-// ---------- نحوه استفاده (داخل کامپوننتت) ----------
-// در کامپوننت روت/صفحه:
-/// useLocalImageFallback();
-
-// مثال اعمال بک‌گراند اسلاید:
-/// const slide = SLIDES[active];
-/// <div style={{ backgroundImage: `url(${resolveSrc(slide.local, slide.remote)})` }} />
-
-// مثال برای img در گالری:
-/// <img src={resolveSrc(img.local, img.remote)} alt="..." />
 
 
 // ------------------------ MAIN PAGE ------------------------
