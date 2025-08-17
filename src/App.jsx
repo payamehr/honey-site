@@ -55,44 +55,121 @@ const CONFIG = {
   markets: ["UAE", "Saudi Arabia", "Qatar", "Kuwait", "Bahrain", "Oman"],
 };
 
-// Helper to resolve public/ assets correctly on GitHub Pages with base `/honey-site/`
-const asset = (path) => `${import.meta.env.BASE_URL}${path.replace(/^\/+/, "")}`;
+// ---------- ASSET + DATA + PER-IMAGE FALLBACK (drop-in) ----------
 
+// 1) BASE-aware resolver (برای GitHub Pages با base=/honey-site/)
+const asset = (path) => `${import.meta.env.BASE_URL}${String(path).replace(/^\/+/, "")}`;
+
+// 2) اسلایدها (فقط نسبت به public/ بنویس؛ یعنی images/... نه public/images/...)
 const SLIDES = [
   {
     local: "images/slides/slide-1-hero.jpg",
-    remote: "https://images.unsplash.com/photo-1505577058444-a3dab90d4253?q=80&w=1600&auto=format&fit=crop",
+    remote:
+      "https://images.unsplash.com/photo-1505577058444-a3dab90d4253?q=80&w=1600&auto=format&fit=crop",
     headline: "Bee to Bottle — Pure & Organic",
     sub: "Golden hues, floral notes, enzyme-rich goodness.",
   },
   {
     local: "images/slides/slide-2-apiary.jpg",
-    remote: "https://images.unsplash.com/photo-1519160558534-5790a5e4a3b1?q=80&w=1600&auto=format&fit=crop",
+    remote:
+      "https://images.unsplash.com/photo-1519160558534-5790a5e4a3b1?q=80&w=1600&auto=format&fit=crop",
     headline: "Craft & Care at the Apiary",
     sub: "Sustainably managed hives and gentle extraction.",
   },
   {
     local: "images/slides/slide-3-oman-packaging.jpg",
-    remote: "https://images.unsplash.com/photo-1542831371-29b0f74f9713?q=80&w=1600&auto=format&fit=crop",
+    remote:
+      "https://images.unsplash.com/photo-1542831371-29b0f74f9713?q=80&w=1600&auto=format&fit=crop",
     headline: "Certified & Packaged in Oman",
     sub: "Tested, standardized and prepared for GCC export.",
   },
 ];
 
+// 3) گالری
 const GALLERY = [
-  { local: "images/gallery/apiary-closeup.jpg", remote: "https://images.unsplash.com/photo-1519160558534-5790a5e4a3b1?q=80&w=1400&auto=format&fit=crop" },
-  { local: "images/gallery/oman-lab-testing.jpg", remote: "https://images.unsplash.com/photo-1542831371-29b0f74f9713?q=80&w=1400&auto=format&fit=crop" },
-  { local: "images/gallery/honeycomb-macro.jpg", remote: "https://images.unsplash.com/photo-1505577058444-a3dab90d4253?q=80&w=1400&auto=format&fit=crop" },
-  { local: "images/gallery/jars-shelf.jpg", remote: "https://images.unsplash.com/photo-1472586662442-3eec04b9dbda?q=80&w=1400&auto=format&fit=crop" },
-  { local: "images/gallery/packaging-line.jpg", remote: "https://images.unsplash.com/photo-1464207687429-7505649dae38?q=80&w=1400&auto=format&fit=crop" },
-  { local: "images/gallery/apiary-landscape.jpg", remote: "https://images.unsplash.com/photo-1519092528346-59a5bb6ec191?q=80&w=1400&auto=format&fit=crop" },
+  {
+    local: "images/gallery/apiary-closeup.jpg",
+    remote:
+      "https://images.unsplash.com/photo-1519160558534-5790a5e4a3b1?q=80&w=1400&auto=format&fit=crop",
+  },
+  {
+    local: "images/gallery/oman-lab-testing.jpg",
+    remote:
+      "https://images.unsplash.com/photo-1542831371-29b0f74f9713?q=80&w=1400&auto=format&fit=crop",
+  },
+  {
+    local: "images/gallery/honeycomb-macro.jpg",
+    remote:
+      "https://images.unsplash.com/photo-1505577058444-a3dab90d4253?q=80&w=1400&auto=format&fit=crop",
+  },
+  {
+    local: "images/gallery/jars-shelf.jpg",
+    remote:
+      "https://images.unsplash.com/photo-1472586662442-3eec04b9dbda?q=80&w=1400&auto=format&fit=crop",
+  },
+  {
+    local: "images/gallery/packaging-line.jpg",
+    remote:
+      "https://images.unsplash.com/photo-1464207687429-7505649dae38?q=80&w=1400&auto=format&fit=crop",
+  },
+  {
+    local: "images/gallery/apiary-landscape.jpg",
+    remote:
+      "https://images.unsplash.com/photo-1519092528346-59a5bb6ec191?q=80&w=1400&auto=format&fit=crop",
+  },
 ];
 
-// Small springy reveal helper
+// 4) مدیر فالبک به‌ازای هر تصویر (بدون وابستگی سراسری)
+const _failedLocals = new Set();
+
+/** برگرداندن src نهایی: تا وقتی لوکال fail نشده، لوکال را می‌دهد؛ در غیر این‌صورت ریموت */
+const resolveSrc = (local, remote) =>
+  _failedLocals.has(local) ? remote : asset(local);
+
+/** پرلود لوکال‌ها + تریگر رندر در صورت خطا (برای سوییچ فوری به ریموت) */
+const useLocalImageFallback = () => {
+  // یک فورس‌ریفِرش سبک تا وقتی فایلی fail شد، UI فوراً آپدیت شود
+  const [, force] = React.useReducer((x) => x + 1, 0);
+
+  React.useEffect(() => {
+    const locals = [
+      ...SLIDES.map((s) => s.local),
+      ...GALLERY.map((g) => g.local),
+      // اگر فایل‌های دیگری هم داری، اینجا اضافه کن (محصولات و ...)
+      // "images/products/organic-honey-jar.jpg",
+      // "images/products/royal-jelly-spoon.jpg",
+    ];
+    locals.forEach((loc) => {
+      const img = new Image();
+      img.onload = () => {}; // ok
+      img.onerror = () => {
+        if (!_failedLocals.has(loc)) {
+          _failedLocals.add(loc);
+          force(); // باعث می‌شود UI دوباره رندر شود و به ریموت سوییچ کند
+        }
+      };
+      img.src = asset(loc);
+    });
+  }, []);
+};
+
+// 5) انیمیشن کوتاه (بدون تغییر)
 const fadeUp = {
   hidden: { opacity: 0, y: 20 },
   show: { opacity: 1, y: 0, transition: { duration: 0.6 } },
 };
+
+// ---------- نحوه استفاده (داخل کامپوننتت) ----------
+// در کامپوننت روت/صفحه:
+/// useLocalImageFallback();
+
+// مثال اعمال بک‌گراند اسلاید:
+/// const slide = SLIDES[active];
+/// <div style={{ backgroundImage: `url(${resolveSrc(slide.local, slide.remote)})` }} />
+
+// مثال برای img در گالری:
+/// <img src={resolveSrc(img.local, img.remote)} alt="..." />
+
 
 // ------------------------ MAIN PAGE ------------------------
 export default function OrganicHoneyLandingPage() {
