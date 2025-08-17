@@ -98,7 +98,6 @@ const GALLERY = [
 function ImageBg({ local, active }) {
   const src = React.useMemo(() => asset(local), [local]);
   const [imgSrc, setImgSrc] = React.useState(src);
-
   React.useEffect(() => setImgSrc(src), [src]);
 
   return (
@@ -119,6 +118,7 @@ const fadeUp = {
   hidden: { opacity: 0, y: 20 },
   show: { opacity: 1, y: 0, transition: { duration: 0.6 } },
 };
+
 
 
 
@@ -187,26 +187,6 @@ export default function OrganicHoneyLandingPage() {
 
   const slide = SLIDES[active];
 
-  // Local assets fallback logic
-  const [useFallback, setUseFallback] = useState(false);
-  useEffect(() => {
-    const locals = [
-      ...SLIDES.map((s) => asset(s.local)),
-      asset("images/products/organic-honey-jar.jpg"),
-      asset("images/products/royal-jelly-spoon.jpg"),
-      ...GALLERY.map((g) => asset(g.local)),
-    ];
-    let switched = false;
-    locals.forEach((u) => {
-      const img = new Image();
-      img.onerror = () => {
-        if (!switched) setUseFallback(true);
-        switched = true;
-      };
-      img.src = u;
-    });
-  }, []);
-
   return (
     <div className="min-h-screen w-full bg-amber-50/30 text-stone-900">
       {/* Sticky Nav */}
@@ -250,18 +230,10 @@ export default function OrganicHoneyLandingPage() {
         <div className="absolute inset-0">
           {/* Background slides */}
           {SLIDES.map((s, i) => (
-            <motion.div
-              key={i}
-              className="absolute inset-0 bg-center bg-cover"
-              style={{
-                backgroundImage: `url(${useFallback ? s.remote : asset(s.local)})`,
-              }}
-              initial={{ opacity: 0 }}
-              animate={{ opacity: i === active ? 1 : 0 }}
-              transition={{ duration: 0.8 }}
-            />
+            <ImageBg key={i} local={s.local} active={i === active} />
           ))}
           <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-amber-900/20 to-amber-800/10" />
+
         </div>
 
         <div className="relative z-10 h-full flex flex-col items-center justify-center text-center px-4">
@@ -430,76 +402,20 @@ export default function OrganicHoneyLandingPage() {
 
           <div className="mt-12 grid gap-6 md:grid-cols-2">
             {/* Organic Honey */}
-            <motion.div
-              className="rounded-3xl overflow-hidden border border-amber-100/80 bg-white shadow-sm"
-              variants={fadeUp}
-              initial="hidden"
-              whileInView="show"
-              viewport={{ once: true, margin: "-80px" }}
-            >
-              <div
-                className="h-64 bg-cover bg-center"
-                style={{
-                  backgroundImage: `url(${useFallback ? "https://images.unsplash.com/photo-1505577058444-a3dab90d4253?q=80&w=1600&auto=format&fit=crop" : asset("images/products/organic-honey-jar.jpg")})`,
-                }}
-                role="img"
-                aria-label="Jar of organic honey"
-              />
-              <div className="p-6">
-                <h3 className="text-xl font-semibold">Organic Honey</h3>
-                <p className="mt-2 text-sm text-stone-600">
-                  Raw, unblended, and traceable. Available in monofloral and seasonal blends
-                  with clean, elegant packaging for international shelves.
-                </p>
-                <ul className="mt-4 grid gap-2 text-sm">
-                  {[
-                    "Lab-tested for purity and origin",
-                    "Cold-filtered to preserve enzymes and aroma",
-                    "Retail (250g/400g/1kg) & HoReCa formats",
-                  ].map((t, i) => (
-                    <li key={i} className="flex items-start gap-2">
-                      <CheckCircle2 className="h-4 w-4 text-amber-600 mt-0.5" /> {t}
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            </motion.div>
+            <div
+              className="h-64 bg-cover bg-center"
+              style={{ backgroundImage: `url(${asset("images/products/organic-honey-jar.jpg")})` }}
+              role="img"
+              aria-label="Jar of organic honey"
+            />
 
             {/* Royal Jelly */}
-            <motion.div
-              className="rounded-3xl overflow-hidden border border-amber-100/80 bg-white shadow-sm"
-              variants={fadeUp}
-              initial="hidden"
-              whileInView="show"
-              viewport={{ once: true, margin: "-80px" }}
-            >
-              <div
-                className="h-64 bg-cover bg-center"
-                style={{
-                  backgroundImage: `url(${useFallback ? "https://images.unsplash.com/photo-1580931880627-268c0c7561c6?q=80&w=1600&auto=format&fit=crop" : asset("images/products/royal-jelly-spoon.jpg")})`,
-                }}
-                role="img"
-                aria-label="Fresh royal jelly in a spoon"
-              />
-              <div className="p-6">
-                <h3 className="text-xl font-semibold">Royal Jelly</h3>
-                <p className="mt-2 text-sm text-stone-600">
-                  Fresh royal jelly handled with strict cold-chain. Packed in insulated
-                  units ideal for pharmacies, specialty retail and wellness formats.
-                </p>
-                <ul className="mt-4 grid gap-2 text-sm">
-                  {[
-                    "Chilled distribution and storage",
-                    "Batch testing in Oman before release",
-                    "Custom private-label available",
-                  ].map((t, i) => (
-                    <li key={i} className="flex items-start gap-2">
-                      <CheckCircle2 className="h-4 w-4 text-amber-600 mt-0.5" /> {t}
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            </motion.div>
+            <div
+              className="h-64 bg-cover bg-center"
+              style={{ backgroundImage: `url(${asset("images/products/royal-jelly-spoon.jpg")})` }}
+              role="img"
+              aria-label="Fresh royal jelly in a spoon"
+            />
           </div>
         </div>
       </section>
@@ -637,7 +553,8 @@ export default function OrganicHoneyLandingPage() {
               {GALLERY.map((img, i) => (
                 <motion.img
                   key={i}
-                  src={useFallback ? img.remote : asset(img.local)}
+                  src={asset(img.local)}
+                  onError={(e) => (e.currentTarget.src = TRANSPARENT_PNG)}
                   alt="Honey and packaging gallery"
                   className="h-56 w-96 object-cover rounded-2xl border border-amber-100 shadow-sm"
                   whileHover={{ scale: 1.02 }}
@@ -645,6 +562,7 @@ export default function OrganicHoneyLandingPage() {
               ))}
             </div>
           </div>
+
         </div>
       </section>
 
