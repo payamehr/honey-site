@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState, useMemo, useCallback } from "react";
-import { motion, useAnimation, useReducedMotion } from "framer-motion";
+import { motion } from "framer-motion";
 import {
   Leaf, Droplets, Package, ShieldCheck, Truck, Factory, MapPin, Phone, Mail,
   CheckCircle2, ChevronRight, Instagram, Facebook, Linkedin, MessageCircle, PlayCircle,
@@ -14,7 +14,7 @@ import {
  * ✅ Smooth section reveal with Framer Motion
  * ✅ Product cards (Organic Honey & Royal Jelly)
  * ✅ "Farm → Market" timeline با QA/استاندارد و بسته‌بندی عمان
- * ✅ Gallery: marquee حرفه‌ای + lightbox (بدون پرش، hover/drag/pause)
+ * ✅ Gallery: marquee حرفه‌ای (بدون پرش) + drag/hover pause + lightbox
  * ✅ Contact form + social links
  * ✅ Embedded Map
  */
@@ -141,50 +141,150 @@ function Lightbox({ open, items, index, onClose, onPrev, onNext }) {
   );
 }
 
-// Marquee حرفه‌ای بدون پرش + توقف روی Hover/Drag
-function GalleryMarquee({ items, onCardClick, duration = 28 }) {
+/** Marquee بدون پرش + ادامه از همان نقطه بعد از Hover/Drag
+ * - موتور: requestAnimationFrame (کنترل کامل روی pause/resume/drag)
+ * - Drag/Touch: بکش/رها کن، از همان آفست ادامه می‌دهد
+ * - Edge fade با CSS mask
+ */
+function GalleryMarquee({ items, onCardClick, speed = 90 }) {
   const doubled = useMemo(() => [...items, ...items], [items]);
-  const controls = useAnimation();
-  const prefersReducedMotion = useReducedMotion();
 
-  const start = useCallback(() => {
-    if (prefersReducedMotion) return;
-    controls.start({
-      x: ["0%", "-50%"],
-      transition: { duration, ease: "linear", repeat: Infinity },
-    });
-  }, [controls, duration, prefersReducedMotion]);
+  const wrapperRef = useRef(null);
+  const trackRef = useRef(null);
 
-  const stop = useCallback(() => controls.stop(), [controls]);
+  const halfRef = useRef(0);         // نصف طول مسیر (یک دور)
+  const offsetRef = useRef(0);       // آفست جاری (px)
+  const pausedRef = useRef(false);   // توقف (hover/drag)
+  const draggingRef = useRef(false); // وضعیت درگ
+  const startXRef = useRef(0);       // X شروع درگ
+  const startOffsetRef = useRef(0);  // offset شروع درگ
+  const movedRef = useRef(0);        // مسافت حرکت برای تشخیص کلیک
 
-  useEffect(() => { start(); }, [start]);
+  const rafRef = useRef(0);
+
+  const applyTransform = useCallback(() => {
+    if (trackRef.current) {
+      trackRef.current.style.transform = `translate3d(${-offsetRef.current}px,0,0)`;
+    }
+  }, []);
+
+  const measure = useCallback(() => {
+    if (!trackRef.current) return;
+    // چون لیست دوبل است، نصف scrollWidth می‌شود طولِ یک دور
+    const half = trackRef.current.scrollWidth / 2;
+    halfRef.current = half;
+
+    if (half > 0) {
+      // نرمال‌سازی offset به بازه [0, half)
+      offsetRef.current = ((offsetRef.current % half) + half) % half;
+      applyTransform();
+    }
+  }, [applyTransform]);
+
+  useEffect(() => {
+    measure();
+    // ResizeObserver برای تغییرات اندازه کارت‌ها/فونت‌ها/...
+    let ro;
+    if (window.ResizeObserver) {
+      ro = new ResizeObserver(measure);
+      if (trackRef.current) ro.observe(trackRef.current);
+    }
+    window.addEventListener("resize", measure);
+    return () => {
+      window.removeEventListener("resize", measure);
+      ro && ro.disconnect();
+    };
+  }, [measure]);
+
+  // لوپ حرکتی
+  useEffect(() => {
+    let last = performance.now();
+    const tick = (now) => {
+      const dt = (now - last) / 1000;
+      last = now;
+
+      if (!pausedRef.current && !draggingRef.current && halfRef.current > 0) {
+        offsetRef.current += speed * dt; // px/s
+        if (offsetRef.current >= halfRef.current) {
+          offsetRef.current -= halfRef.current;
+        }
+        applyTransform();
+      }
+      rafRef.current = requestAnimationFrame(tick);
+    };
+    rafRef.current = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(rafRef.current);
+  }, [speed, applyTransform]);
+
+  // Hover pause/resume
+  const onMouseEnter = () => { pausedRef.current = true; };
+  const onMouseLeave = () => { if (!draggingRef.current) pausedRef.current = false; };
+
+  // Pointer helpers
+  const getX = (e) =>
+    e.clientX !== undefined ? e.clientX : (e.touches && e.touches[0]?.clientX) || 0;
+
+  const onPointerDown = (e) => {
+    draggingRef.current = true;
+    pausedRef.current = true;
+    startXRef.current = getX(e);
+    startOffsetRef.current = offsetRef.current;
+    movedRef.current = 0;
+  };
+
+  const onPointerMove = (e) => {
+    if (!draggingRef.current) return;
+    const delta = getX(e) - startXRef.current;
+    movedRef.current = Math.max(movedRef.current, Math.abs(delta));
+    // درگ به چپ ⇒ حرکتِ مارکوی به جلو (افزایش offset)
+    const half = halfRef.current || 1;
+    let next = startOffsetRef.current + (-delta);
+    next = ((next % half) + half) % half;
+    offsetRef.current = next;
+    applyTransform();
+  };
+
+  const onPointerUp = () => {
+    draggingRef.current = false;
+    pausedRef.current = false;
+  };
+
+  // برای جلوگیری از کلیک ناخواسته بعد از درگ
+  const handleCardClick = (index) => {
+    if (draggingRef.current || movedRef.current > 6) return;
+    onCardClick?.(index);
+  };
 
   return (
     <div
-      className="relative mt-8 overflow-hidden"
-      // Edge fade
+      ref={wrapperRef}
+      className="relative mt-8 overflow-hidden select-none"
       style={{
         WebkitMaskImage:
           "linear-gradient(to right, rgba(0,0,0,0), #000 6%, #000 94%, rgba(0,0,0,0))",
         maskImage:
           "linear-gradient(to right, rgba(0,0,0,0), #000 6%, #000 94%, rgba(0,0,0,0))",
       }}
-      onMouseEnter={stop}
-      onMouseLeave={start}
+      onMouseEnter={onMouseEnter}
+      onMouseLeave={onMouseLeave}
+      onPointerDown={onPointerDown}
+      onPointerMove={onPointerMove}
+      onPointerUp={onPointerUp}
+      onPointerCancel={onPointerUp}
+      onTouchStart={onPointerDown}
+      onTouchMove={onPointerMove}
+      onTouchEnd={onPointerUp}
     >
-      <motion.div
-        className="flex cursor-grab active:cursor-grabbing"
-        animate={controls}
-        drag="x"
-        dragMomentum={false}
-        onDragStart={stop}
-        onDragEnd={start}
+      <div
+        ref={trackRef}
+        className="flex will-change-transform cursor-grab active:cursor-grabbing"
+        style={{ transform: "translate3d(0,0,0)" }}
       >
         {doubled.map((img, i) => (
           <motion.button
             type="button"
             key={`${img.local}-${i}`}
-            onClick={() => onCardClick?.(i % items.length)}
+            onClick={() => handleCardClick(i % items.length)}
             whileHover={{ scale: 1.03 }}
             className="relative mr-4 shrink-0 rounded-2xl overflow-hidden border border-amber-100 shadow-sm bg-white/40 group"
           >
@@ -193,11 +293,10 @@ function GalleryMarquee({ items, onCardClick, duration = 28 }) {
               alt="Honey & packaging"
               className="h-[160px] w-[260px] sm:h-[224px] sm:w-[384px] object-cover"
             />
-            {/* overlay لطیف هنگام hover */}
             <div className="pointer-events-none absolute inset-0 opacity-0 group-hover:opacity-100 transition bg-gradient-to-t from-black/30 via-transparent to-transparent" />
           </motion.button>
         ))}
-      </motion.div>
+      </div>
     </div>
   );
 }
@@ -554,7 +653,7 @@ export default function OrganicHoneyLandingPage() {
             A selection of imagery from our apiaries, lab, packaging and shelf-ready formats.
           </motion.p>
 
-          <GalleryMarquee items={GALLERY} onCardClick={openLb} duration={15} />
+          <GalleryMarquee items={GALLERY} onCardClick={(i) => setLbOpen(true) || setLbIndex(i)} speed={90} />
         </div>
 
         {/* Lightbox */}
@@ -562,9 +661,9 @@ export default function OrganicHoneyLandingPage() {
           open={lbOpen}
           items={GALLERY}
           index={lbIndex}
-          onClose={closeLb}
-          onPrev={prevLb}
-          onNext={nextLb}
+          onClose={() => setLbOpen(false)}
+          onPrev={() => setLbIndex((i) => (i - 1 + GALLERY.length) % GALLERY.length)}
+          onNext={() => setLbIndex((i) => (i + 1) % GALLERY.length)}
         />
       </section>
 
