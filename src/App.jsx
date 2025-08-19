@@ -1,5 +1,5 @@
-import React, { useEffect, useRef, useState, useMemo } from "react";
-import { motion } from "framer-motion";
+import React, { useEffect, useRef, useState, useMemo, useCallback } from "react";
+import { motion, useAnimation, useReducedMotion } from "framer-motion";
 import {
   Leaf, Droplets, Package, ShieldCheck, Truck, Factory, MapPin, Phone, Mail,
   CheckCircle2, ChevronRight, Instagram, Facebook, Linkedin, MessageCircle, PlayCircle,
@@ -13,11 +13,10 @@ import {
  * ✅ Full-bleed hero with autoplay slideshow
  * ✅ Smooth section reveal with Framer Motion
  * ✅ Product cards (Organic Honey & Royal Jelly)
- * ✅ "Farm → Market" timeline with Oman QA/standardization & packaging
- * ✅ GCC focus section (target markets)
- * ✅ Gallery (auto-scroll loop)
+ * ✅ "Farm → Market" timeline با QA/استاندارد و بسته‌بندی عمان
+ * ✅ Gallery: marquee حرفه‌ای + lightbox (بدون پرش، hover/drag/pause)
  * ✅ Contact form + social links
- * ✅ Embedded map (replace coordinates/address as needed)
+ * ✅ Embedded Map
  */
 
 // ------------------------ CONFIG ------------------------
@@ -86,6 +85,123 @@ function ImgLocal({ src, alt, className }) {
   );
 }
 
+// Lightbox ساده با ناوبری
+function Lightbox({ open, items, index, onClose, onPrev, onNext }) {
+  useEffect(() => {
+    if (!open) return;
+    const onKey = (e) => {
+      if (e.key === "Escape") onClose();
+      if (e.key === "ArrowLeft") onPrev();
+      if (e.key === "ArrowRight") onNext();
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [open, onClose, onPrev, onNext]);
+
+  if (!open) return null;
+  const current = items[index];
+
+  return (
+    <div
+      className="fixed inset-0 z-[80] bg-black/80 backdrop-blur-sm flex items-center justify-center p-4"
+      onClick={onClose}
+    >
+      <div className="relative max-w-5xl w-full" onClick={(e) => e.stopPropagation()}>
+        <button
+          className="absolute -top-3 -right-3 md:-top-4 md:-right-4 rounded-full bg-white/90 p-2 shadow hover:bg-white"
+          onClick={onClose}
+          aria-label="Close"
+        >
+          <X className="h-5 w-5" />
+        </button>
+        <button
+          className="absolute left-2 top-1/2 -translate-y-1/2 rounded-full bg-white/90 p-2 shadow hover:bg-white"
+          onClick={onPrev}
+          aria-label="Previous"
+        >
+          <ChevronRight className="h-6 w-6 rotate-180" />
+        </button>
+        <button
+          className="absolute right-2 top-1/2 -translate-y-1/2 rounded-full bg-white/90 p-2 shadow hover:bg-white"
+          onClick={onNext}
+          aria-label="Next"
+        >
+          <ChevronRight className="h-6 w-6" />
+        </button>
+
+        <div className="rounded-xl overflow-hidden bg-black/10">
+          <ImgLocal
+            src={current.local}
+            alt="Gallery preview"
+            className="w-full max-h-[80vh] object-contain"
+          />
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// Marquee حرفه‌ای بدون پرش + توقف روی Hover/Drag
+function GalleryMarquee({ items, onCardClick, duration = 28 }) {
+  const doubled = useMemo(() => [...items, ...items], [items]);
+  const controls = useAnimation();
+  const prefersReducedMotion = useReducedMotion();
+
+  const start = useCallback(() => {
+    if (prefersReducedMotion) return;
+    controls.start({
+      x: ["0%", "-50%"],
+      transition: { duration, ease: "linear", repeat: Infinity },
+    });
+  }, [controls, duration, prefersReducedMotion]);
+
+  const stop = useCallback(() => controls.stop(), [controls]);
+
+  useEffect(() => { start(); }, [start]);
+
+  return (
+    <div
+      className="relative mt-8 overflow-hidden"
+      // Edge fade
+      style={{
+        WebkitMaskImage:
+          "linear-gradient(to right, rgba(0,0,0,0), #000 6%, #000 94%, rgba(0,0,0,0))",
+        maskImage:
+          "linear-gradient(to right, rgba(0,0,0,0), #000 6%, #000 94%, rgba(0,0,0,0))",
+      }}
+      onMouseEnter={stop}
+      onMouseLeave={start}
+    >
+      <motion.div
+        className="flex cursor-grab active:cursor-grabbing"
+        animate={controls}
+        drag="x"
+        dragMomentum={false}
+        onDragStart={stop}
+        onDragEnd={start}
+      >
+        {doubled.map((img, i) => (
+          <motion.button
+            type="button"
+            key={`${img.local}-${i}`}
+            onClick={() => onCardClick?.(i % items.length)}
+            whileHover={{ scale: 1.03 }}
+            className="relative mr-4 shrink-0 rounded-2xl overflow-hidden border border-amber-100 shadow-sm bg-white/40 group"
+          >
+            <ImgLocal
+              src={img.local}
+              alt="Honey & packaging"
+              className="h-[160px] w-[260px] sm:h-[224px] sm:w-[384px] object-cover"
+            />
+            {/* overlay لطیف هنگام hover */}
+            <div className="pointer-events-none absolute inset-0 opacity-0 group-hover:opacity-100 transition bg-gradient-to-t from-black/30 via-transparent to-transparent" />
+          </motion.button>
+        ))}
+      </motion.div>
+    </div>
+  );
+}
+
 // Small springy reveal helper
 const fadeUp = {
   hidden: { opacity: 0, y: 20 },
@@ -125,7 +241,7 @@ export default function OrganicHoneyLandingPage() {
     }
   }, [active]);
 
-  // Smooth scroll for internal anchors
+  // Smooth scroll for internal anchors + بستن منوی موبایل
   useEffect(() => {
     const handler = (e) => {
       const t = e.target;
@@ -141,48 +257,13 @@ export default function OrganicHoneyLandingPage() {
     return () => document.removeEventListener("click", handler);
   }, []);
 
-  const slide = SLIDES[active];
-
-  // ---------------- Auto-scroll Gallery (loop) ----------------
-  // Duplicate list to allow seamless wrap-around
-  const galleryLoop = useMemo(() => [...GALLERY, ...GALLERY], []);
-  const viewRef = useRef(null);    // viewport (overflow-hidden)
-  const trackRef = useRef(null);   // flex track
-  const [step, setStep] = useState(0); // pixels per shift
-
-  // Measure a card width + margin (we set explicit mr-4 => 16px)
-  useEffect(() => {
-    const first = trackRef.current?.querySelector("[data-card]");
-    if (!first) return;
-    const rect = first.getBoundingClientRect();
-    // width (offsetWidth) does not include margin; add 16 for mr-4
-    const px = Math.round(first.offsetWidth + 16);
-    if (px > 0) setStep(px);
-  }, []);
-
-  // Auto-scroll every 2s; when we pass half of track, jump back (no flash)
-  useEffect(() => {
-    if (!step) return;
-    const view = viewRef.current;
-    const track = trackRef.current;
-    if (!view || !track) return;
-
-    const timer = window.setInterval(() => {
-      const half = track.scrollWidth / 2;
-      const next = view.scrollLeft + step;
-
-      // اگر به نیمه‌ی دوم رسیدیم، بدون انیمیشن برگرد به ابتدای معادل
-      if (next >= half - 1) {
-        // جلو می‌بریم تا همون افکت «قدم» حفظ بشه
-        view.scrollLeft = next - half;
-      } else {
-        // اسکرول نرم یک قدم
-        view.scrollBy({ left: step, behavior: "smooth" });
-      }
-    }, 2000);
-
-    return () => window.clearInterval(timer);
-  }, [step]);
+  // Lightbox state
+  const [lbOpen, setLbOpen] = useState(false);
+  const [lbIndex, setLbIndex] = useState(0);
+  const openLb = (i) => { setLbIndex(i); setLbOpen(true); };
+  const closeLb = () => setLbOpen(false);
+  const prevLb = () => setLbIndex((i) => (i - 1 + GALLERY.length) % GALLERY.length);
+  const nextLb = () => setLbIndex((i) => (i + 1) % GALLERY.length);
 
   return (
     <div className="min-h-screen w-full bg-amber-50/30 text-stone-900">
@@ -463,7 +544,7 @@ export default function OrganicHoneyLandingPage() {
         </div>
       </section>
 
-      {/* GALLERY (auto-scroll loop) */}
+      {/* GALLERY — Marquee + Lightbox */}
       <section id="gallery" className="relative py-20 sm:py-28">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           <motion.h2 className="text-3xl sm:text-4xl font-bold" variants={fadeUp} initial="hidden" whileInView="show" viewport={{ once: true, margin: "-80px" }}>
@@ -473,26 +554,18 @@ export default function OrganicHoneyLandingPage() {
             A selection of imagery from our apiaries, lab, packaging and shelf-ready formats.
           </motion.p>
 
-          {/* Viewport */}
-          <div ref={viewRef} className="mt-8 overflow-hidden">
-            {/* Track */}
-            <div ref={trackRef} className="flex">
-              {galleryLoop.map((img, i) => (
-                <div
-                  key={`${img.local}-${i}`}
-                  data-card
-                  className="shrink-0 w-96 h-56 mr-4 rounded-2xl overflow-hidden border border-amber-100 shadow-sm"
-                >
-                  <ImgLocal
-                    src={img.local}
-                    alt="Honey and packaging gallery"
-                    className="h-full w-full object-cover"
-                  />
-                </div>
-              ))}
-            </div>
-          </div>
+          <GalleryMarquee items={GALLERY} onCardClick={openLb} duration={28} />
         </div>
+
+        {/* Lightbox */}
+        <Lightbox
+          open={lbOpen}
+          items={GALLERY}
+          index={lbIndex}
+          onClose={closeLb}
+          onPrev={prevLb}
+          onNext={nextLb}
+        />
       </section>
 
       {/* CONTACT + MAP */}
