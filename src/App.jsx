@@ -653,7 +653,7 @@ export default function OrganicHoneyLandingPage() {
             A selection of imagery from our apiaries, lab, packaging and shelf-ready formats.
           </motion.p>
 
-          <GalleryMarquee items={GALLERY} onCardClick={(i) => setLbOpen(true) || setLbIndex(i)} speed={90} />
+          <GalleryMarquee items={GALLERY} onCardClick={(i) => setLbOpen(true) || setLbIndex(i)} speed={70} />
         </div>
 
         {/* Lightbox */}
